@@ -39,9 +39,10 @@ class GemCommandTest < Minitest::Test
 
   # --- cmd_install ---
 
-  def test_install_raises_without_gem_name
+  def test_install_shows_error_without_gem_name
     set_args
-    assert_raises(Gem::CommandLineError) { @cmd.send(:cmd_install) }
+    @cmd.send(:cmd_install)
+    assert_match "gem_name required", @errors.string
   end
 
   def test_install_auto_installs_when_gem_not_present
@@ -69,44 +70,77 @@ class GemCommandTest < Minitest::Test
 
   def test_install_shows_already_cached_message
     pre_cache("my_gem", "1.0.0")
-    set_args("my_gem", "1.0.0")
-    @cmd.send(:cmd_install)
+    set_args("my_gem")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      @cmd.send(:cmd_install)
+    end
     assert_match "Already cached", @output.string
     assert_match "--force", @output.string
   end
 
   def test_install_generates_and_links_uncached_gem
-    set_args("my_gem", "1.0.0")
+    set_args("my_gem")
     generated = []
-    stub_generator(generated) { @cmd.send(:cmd_install) }
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_generator(generated) { @cmd.send(:cmd_install) }
+    end
     assert_includes generated, "my_gem"
     assert_match "Cached", @output.string
   end
 
+  def test_install_multiple_gems
+    set_args("gem_a", "gem_b", "gem_c")
+    generated = []
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_generator(generated) { @cmd.send(:cmd_install) }
+    end
+    assert_equal %w[gem_a gem_b gem_c], generated
+    assert_match "Tip:", @output.string
+  end
+
+  def test_install_continues_after_one_gem_fails
+    set_args("bad_gem", "good_gem")
+    generated = []
+    resolver = ->(name) { "1.0.0" }
+    @cmd.stub(:resolve_installed_version, resolver) do
+      GemSkills::Generator.stub(:new, ->(name, *) {
+        name == "bad_gem" ? failing_generator : simple_generator_tracking(generated, name)
+      }) { @cmd.send(:cmd_install) }
+    end
+    assert_match "bad_gem", @errors.string
+    assert_includes generated, "good_gem"
+  end
+
   def test_install_force_bypasses_cached_gem
     pre_cache("my_gem", "1.0.0")
-    set_args("my_gem", "1.0.0")
+    set_args("my_gem")
     set_option(:force, true)
     generated = []
-    stub_generator(generated) { @cmd.send(:cmd_install) }
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_generator(generated) { @cmd.send(:cmd_install) }
+    end
     assert_includes generated, "my_gem"
   end
 
   def test_install_passes_custom_model_to_generator
-    set_args("my_gem", "1.0.0")
+    set_args("my_gem")
     set_option(:model, "claude-haiku-4-5")
     captured = {}
     gen_obj  = simple_generator
-    GemSkills::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-      @cmd.send(:cmd_install)
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      GemSkills::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
+        @cmd.send(:cmd_install)
+      end
     end
     assert_equal "claude-haiku-4-5", captured[:model]
   end
 
   def test_install_rescues_gem_skills_error_and_reports_via_alert
-    set_args("my_gem", "1.0.0")
-    GemSkills::Generator.stub(:new, ->(*) { failing_generator }) do
-      @cmd.send(:cmd_install)  # must not raise
+    set_args("my_gem")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      GemSkills::Generator.stub(:new, ->(*) { failing_generator }) do
+        @cmd.send(:cmd_install)  # must not raise
+      end
     end
     assert_match "no docs found", @errors.string
   end
@@ -137,14 +171,34 @@ class GemCommandTest < Minitest::Test
 
   # --- cmd_purge ---
 
-  def test_purge_raises_without_gem_name
+  def test_purge_shows_error_without_gem_name
     set_args
-    assert_raises(Gem::CommandLineError) { @cmd.send(:cmd_purge) }
+    @cmd.send(:cmd_purge)
+    assert_match "Usage: gem skill purge", @errors.string
   end
 
-  def test_purge_raises_without_version
+  def test_purge_shows_error_without_version
     set_args("my_gem")
-    assert_raises(Gem::CommandLineError) { @cmd.send(:cmd_purge) }
+    @cmd.send(:cmd_purge)
+    assert_match "Usage: gem skill purge", @errors.string
+  end
+
+  def test_purge_all_removes_all_versions_of_gem
+    pre_cache("my_gem", "1.0.0")
+    pre_cache("my_gem", "2.0.0")
+    set_args("my_gem")
+    set_option(:all, true)
+    @cmd.send(:cmd_purge)
+    refute GemSkills::Cache.cached?("my_gem", "1.0.0")
+    refute GemSkills::Cache.cached?("my_gem", "2.0.0")
+    assert_match "2 version", @output.string
+  end
+
+  def test_purge_all_reports_error_when_no_versions_cached
+    set_args("my_gem")
+    set_option(:all, true)
+    @cmd.send(:cmd_purge)
+    assert_match "No cached versions", @errors.string
   end
 
   def test_purge_removes_cached_skill
@@ -188,6 +242,12 @@ class GemCommandTest < Minitest::Test
   def simple_generator
     obj = Object.new
     obj.define_singleton_method(:generate) { |**| "# skill content" }
+    obj
+  end
+
+  def simple_generator_tracking(generated, name)
+    obj = Object.new
+    obj.define_singleton_method(:generate) { |**| generated << name; "# #{name} skill" }
     obj
   end
 

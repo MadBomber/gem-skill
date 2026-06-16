@@ -56,6 +56,21 @@ class GeneratorTest < Minitest::Test
     end
   end
 
+  def test_generate_converts_ruby_llm_error_to_gem_skills_error
+    fake_chat = Object.new
+    fake_chat.define_singleton_method(:with_instructions) { |_| self }
+    fake_chat.define_singleton_method(:ask) { |_| raise RubyLLM::UnauthorizedError, "Invalid API key" }
+
+    GemSkills::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
+      RubyLLM.stub(:chat, fake_chat) do
+        error = assert_raises(GemSkills::Error) do
+          GemSkills::Generator.new(@gem_name, @version).generate
+        end
+        assert_match "Invalid API key", error.message
+      end
+    end
+  end
+
   def test_generate_streams_chunks_to_block
     chunks    = %w[## Overview\n Chunks\ text.]
     fake_chat = streaming_chat(chunks)
