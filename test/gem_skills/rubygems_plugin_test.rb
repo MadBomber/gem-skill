@@ -3,9 +3,6 @@
 require "test_helper"
 require "tmpdir"
 
-# The plugin file is loaded by RubyGems' infrastructure, which guarantees
-# CommandManager and the install command are already defined. In tests we must
-# pull them in explicitly before loading the plugin.
 require "rubygems/command_manager"
 require "rubygems/commands/install_command"
 require "rubygems_plugin"
@@ -14,17 +11,16 @@ class RubygemsPluginTest < Minitest::Test
   def setup
     @tmpdir = Dir.mktmpdir
     stub_cache_root(@tmpdir)
-    @output = StringIO.new
     @errors = StringIO.new
-    Gem.ui.instance_variable_set(:@outs, @output)
     Gem.ui.instance_variable_set(:@errs, @errors)
+    GemSkills.pending_skills.clear
   end
 
   def teardown
-    Gem.ui.instance_variable_set(:@outs, STDOUT)
     Gem.ui.instance_variable_set(:@errs, STDERR)
     FileUtils.rm_rf(@tmpdir)
     restore_cache_root
+    GemSkills.pending_skills.clear
   end
 
   # --- InstallSkillOption ---
@@ -41,26 +37,77 @@ class RubygemsPluginTest < Minitest::Test
     refute cmd.options[:generate_skill]
   end
 
-  # --- post_install hook ---
+  # --- post_install hook: collection ---
 
-  def test_post_install_skips_when_flag_not_set
-    installer = fake_installer("my_gem", "1.0.0", generate_skill: false)
-    generated = []
-    call_post_install_hooks(installer, generated: generated)
-    assert_empty generated
+  def test_post_install_collects_spec_when_flag_set
+    call_post_install_hooks(fake_installer("my_gem", "1.0.0", generate_skill: true))
+    assert_equal [{ name: "my_gem", version: "1.0.0" }], GemSkills.pending_skills
   end
 
-  def test_post_install_generates_skill_when_flag_set
-    installer = fake_installer("my_gem", "1.0.0", generate_skill: true)
+  def test_post_install_skips_when_flag_not_set
+    call_post_install_hooks(fake_installer("my_gem", "1.0.0", generate_skill: false))
+    assert_empty GemSkills.pending_skills
+  end
+
+  def test_post_install_collects_multiple_specs
+    call_post_install_hooks(fake_installer("gem_a", "1.0.0", generate_skill: true))
+    call_post_install_hooks(fake_installer("gem_b", "2.0.0", generate_skill: true))
+    assert_equal 2, GemSkills.pending_skills.size
+    assert_equal "gem_a", GemSkills.pending_skills[0][:name]
+    assert_equal "gem_b", GemSkills.pending_skills[1][:name]
+  end
+
+  # --- generate_pending_skills: orchestration ---
+
+  def test_generate_pending_skills_does_nothing_when_empty
+    GemSkills.pending_skills.clear
+    configured = false
+    GemSkills.stub(:configure_llm!, -> { configured = true }) do
+      GemSkills.generate_pending_skills
+    end
+    refute configured
+  end
+
+  # --- generate_one_skill: per-gem unit tests (null spinner, no threads) ---
+
+  def test_generate_one_skill_calls_generator_for_gem
     generated = []
-    call_post_install_hooks(installer, generated: generated)
+    GemSkills::Generator.stub(:new, ->(name, _ver) { fake_generator { generated << name } }) do
+      GemSkills.generate_one_skill("my_gem", "1.0.0", null_spinner)
+    end
     assert_includes generated, "my_gem"
   end
 
-  def test_post_install_reports_warning_on_gem_skills_error
-    installer = fake_installer("my_gem", "1.0.0", generate_skill: true)
-    call_post_install_hooks(installer, raise_error: true)
-    assert_match "no docs found", @errors.string
+  def test_generate_one_skill_does_not_raise_on_gem_skills_error
+    GemSkills::Generator.stub(:new, ->(*) { failing_generator("no docs found") }) do
+      GemSkills.generate_one_skill("bad_gem", "1.0.0", null_spinner)  # must not raise
+    end
+  end
+
+  def test_generate_one_skill_does_not_raise_on_unexpected_error
+    GemSkills::Generator.stub(:new, ->(*) { failing_generator("network error", RuntimeError) }) do
+      GemSkills.generate_one_skill("bad_gem", "1.0.0", null_spinner)  # must not raise
+    end
+  end
+
+  def test_generate_one_skill_calls_success_on_spinner
+    sp = null_spinner
+    succeeded = false
+    sp.define_singleton_method(:success) { |*| succeeded = true }
+    GemSkills::Generator.stub(:new, ->(*) { fake_generator }) do
+      GemSkills.generate_one_skill("my_gem", "1.0.0", sp)
+    end
+    assert succeeded
+  end
+
+  def test_generate_one_skill_calls_error_on_spinner_when_failed
+    sp = null_spinner
+    errored = false
+    sp.define_singleton_method(:error) { |*| errored = true }
+    GemSkills::Generator.stub(:new, ->(*) { failing_generator("bad") }) do
+      GemSkills.generate_one_skill("bad_gem", "1.0.0", sp)
+    end
+    assert errored
   end
 
   private
@@ -73,22 +120,29 @@ class RubygemsPluginTest < Minitest::Test
     inst
   end
 
-  def call_post_install_hooks(installer, generated: [], raise_error: false)
-    gen_stub = ->(name, ver, **) {
-      obj = Object.new
-      obj.define_singleton_method(:generate) do |**|
-        raise GemSkills::Error, "no docs found" if raise_error
-        generated << name
-        "# #{name} skill"
-      end
-      obj
-    }
+  def call_post_install_hooks(installer)
+    Gem.post_install_hooks.each { |hook| hook.call(installer) }
+  end
 
-    GemSkills.stub(:configure_llm!, nil) do
-      GemSkills::Generator.stub(:new, gen_stub) do
-        Gem.post_install_hooks.each { |hook| hook.call(installer) }
-      end
-    end
+  def null_spinner
+    sp = Object.new
+    sp.define_singleton_method(:auto_spin) { }
+    sp.define_singleton_method(:update)    { |**| }
+    sp.define_singleton_method(:success)   { |*| }
+    sp.define_singleton_method(:error)     { |*| }
+    sp
+  end
+
+  def fake_generator(&on_generate)
+    obj = Object.new
+    obj.define_singleton_method(:generate) { |**| on_generate&.call; "# skill" }
+    obj
+  end
+
+  def failing_generator(message, klass = GemSkills::Error)
+    obj = Object.new
+    obj.define_singleton_method(:generate) { |**| raise klass, message }
+    obj
   end
 
   def stub_cache_root(dir)
