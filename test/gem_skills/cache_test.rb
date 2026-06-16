@@ -49,6 +49,33 @@ class CacheTest < Minitest::Test
     end
   end
 
+  def test_read_raises_when_not_cached
+    with_tmp_cache do
+      assert_raises(GemSkills::Error) { GemSkills::Cache.read("missing_gem", "0.0.1") }
+    end
+  end
+
+  def test_store_writes_metadata_json
+    with_tmp_cache do
+      GemSkills::Cache.store("my_gem", "1.0.0", "# skill", { model: "claude-sonnet-4-6" })
+      meta_path = GemSkills::Cache.metadata_path("my_gem", "1.0.0")
+      assert File.exist?(meta_path)
+      meta = JSON.parse(File.read(meta_path))
+      assert_equal "my_gem",            meta["gem_name"]
+      assert_equal "1.0.0",             meta["version"]
+      assert_equal "claude-sonnet-4-6", meta["model"]
+      assert meta.key?("generated_at")
+    end
+  end
+
+  def test_all_gems_returns_sorted_gem_names
+    with_tmp_cache do
+      GemSkills::Cache.store("zeitwerk", "2.0.0", "z skill")
+      GemSkills::Cache.store("faraday",  "1.0.0", "f skill")
+      assert_equal %w[faraday zeitwerk], GemSkills::Cache.all_gems
+    end
+  end
+
   private
 
   def with_tmp_cache

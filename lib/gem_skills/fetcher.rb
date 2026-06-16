@@ -6,9 +6,9 @@ require "json"
 
 module GemSkills
   # Fetches documentation for a gem from multiple sources, in priority order:
-  #   1. Local gem installation (Gem::Specification → gem_dir)
-  #   2. RubyGems API (metadata, description, runtime deps)
-  #   3. GitHub raw README (derived from source_code_uri / homepage_uri)
+  #   1. Local gem installation (Gem::Specification) — metadata + README + CHANGELOG + examples
+  #   2. RubyGems API — metadata only, when gem isn't installed locally
+  #   3. GitHub raw README — when gem isn't installed locally
   class Fetcher
     RUBYGEMS_API  = "https://rubygems.org/api/v1/gems/%s.json"
     GITHUB_RAW    = "https://raw.githubusercontent.com/%s/%s/%s"
@@ -31,12 +31,13 @@ module GemSkills
       {
         metadata:  metadata,
         readme:    readme,
-        changelog: changelog
+        changelog: changelog,
+        examples:  examples
       }.compact
     end
 
     def metadata
-      @metadata ||= rubygems_metadata
+      @metadata ||= local_metadata || rubygems_metadata
     end
 
     def readme
@@ -45,6 +46,10 @@ module GemSkills
 
     def changelog
       @changelog ||= local_file(*CHANGELOG_CANDIDATES)
+    end
+
+    def examples
+      @examples ||= local_examples
     end
 
     private
@@ -57,13 +62,69 @@ module GemSkills
       nil
     end
 
+    def gem_dir
+      @gem_dir ||= gem_spec&.gem_dir || locate_gem_dir
+    end
+
+    def locate_gem_dir
+      dir_name = "#{gem_name}-#{version}"
+      Gem.path.each do |base|
+        path = File.join(base, "gems", dir_name)
+        return path if File.directory?(path)
+      end
+      nil
+    end
+
     def local_file(*candidates)
-      return nil unless gem_spec
+      dir = gem_dir
+      return nil unless dir
 
       candidates.each do |name|
-        path = File.join(gem_spec.gem_dir, name)
+        path = File.join(dir, name)
         return File.read(path, encoding: "utf-8") if File.exist?(path)
       end
+      nil
+    end
+
+    def local_metadata
+      return nil unless gem_spec
+
+      spec  = gem_spec
+      lines = []
+      lines << "**Gem:** #{spec.name} #{spec.version}"
+      lines << "**Summary:** #{spec.summary}"                              if spec.summary.to_s.strip.length > 0
+      lines << "**Description:** #{spec.description}"                     if spec.description.to_s.strip.length > 0
+      lines << "**Author(s):** #{spec.authors.join(', ')}"                if spec.authors.any?
+      lines << "**Homepage:** #{spec.homepage}"                           if spec.homepage.to_s.strip.length > 0
+      lines << "**License(s):** #{spec.licenses.join(', ')}"              if spec.licenses.any?
+      lines << "**Source:** #{spec.metadata['source_code_uri']}"          if spec.metadata["source_code_uri"]
+      lines << "**Documentation:** #{spec.metadata['documentation_uri']}" if spec.metadata["documentation_uri"]
+
+      runtime_deps = spec.runtime_dependencies
+      if runtime_deps.any?
+        dep_list = runtime_deps.map { |d| "#{d.name} (#{d.requirement})" }.join(", ")
+        lines << "**Runtime dependencies:** #{dep_list}"
+      end
+
+      lines.join("\n")
+    end
+
+    def local_examples
+      dir = gem_dir
+      return nil unless dir
+
+      examples_dir = File.join(dir, "examples")
+      return nil unless File.directory?(examples_dir)
+
+      files = Dir.glob(File.join(examples_dir, "**", "*.{rb,md}")).sort
+      return nil if files.empty?
+
+      files.map do |path|
+        relative = path.delete_prefix("#{examples_dir}/")
+        content  = File.read(path, encoding: "utf-8")
+        "### #{relative}\n\n```\n#{content.strip}\n```"
+      end.join("\n\n")
+    rescue Encoding::InvalidByteSequenceError, Encoding::UndefinedConversionError
       nil
     end
 
