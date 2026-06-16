@@ -5,7 +5,7 @@ require "ruby_llm"
 module GemSkills
   # Drives the LLM pipeline: fetches docs, generates a SKILL.md, caches it.
   class Generator
-    DEFAULT_MODEL   = "claude-sonnet-4-6"
+    DEFAULT_MODEL   = "gpt-5.5"
     MAX_SOURCE_CHARS = 60_000  # guard against enormous READMEs blowing the context window
 
     SYSTEM_INSTRUCTIONS = <<~SYSTEM
@@ -73,6 +73,8 @@ module GemSkills
       skill_content = block ? call_llm_streaming(sources, &block) : call_llm(sources)
       Cache.store(gem_name, version, skill_content, { sources: sources.keys.map(&:to_s), model: model })
       skill_content
+    rescue RubyLLM::Error => e
+      raise Error, e.message
     end
 
     private

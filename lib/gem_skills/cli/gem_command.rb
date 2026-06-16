@@ -12,6 +12,7 @@ class Gem::Commands::SkillCommand < Gem::Command
     super "skill", "Manage Claude Code AI skills for Ruby gems"
 
     add_option("-f", "--force",         "Regenerate even if already cached") { |_, o| o[:force] = true }
+    add_option("-a", "--all",           "Purge all cached versions of a gem") { |_, o| o[:all] = true }
     add_option("-m", "--model MODEL",   "LLM model to use (default: #{GemSkills::Generator::DEFAULT_MODEL})") do |model, o|
       o[:model] = model
     end
@@ -22,9 +23,10 @@ class Gem::Commands::SkillCommand < Gem::Command
   end
 
   def usage
-    "#{program_name} install GEM_NAME [VERSION]\n" \
+    "#{program_name} install GEM_NAME [GEM_NAME ...]\n" \
     "       #{program_name} list\n" \
-    "       #{program_name} purge GEM_NAME VERSION"
+    "       #{program_name} purge GEM_NAME VERSION\n" \
+    "       #{program_name} purge GEM_NAME --all"
   end
 
   def description
@@ -56,18 +58,29 @@ class Gem::Commands::SkillCommand < Gem::Command
   private
 
   def cmd_install
-    gem_name = options[:args].shift
-    raise Gem::CommandLineError, "gem_name required. Usage: gem skill install GEM_NAME [VERSION]" unless gem_name
+    gem_names = options[:args].dup
+    options[:args].clear
 
-    version = options[:args].shift || resolve_installed_version(gem_name)
+    if gem_names.empty?
+      alert_error "gem_name required. Usage: gem skill install GEM_NAME [GEM_NAME ...]"
+      return
+    end
+
+    force = options[:force]
+    model = options[:model] || GemSkills::Generator::DEFAULT_MODEL
+
+    gem_names.each { |name| install_one(name, force: force, model: model) }
+
+    say "Tip: run 'bundle plugin install gem_skills' to enable 'bundle skill'."
+  end
+
+  def install_one(gem_name, force:, model:)
+    version = resolve_installed_version(gem_name)
 
     if version.nil?
       say "gem '#{gem_name}' is not installed locally. Installing..."
       version = install_gem(gem_name)
     end
-
-    force = options[:force]
-    model = options[:model] || GemSkills::Generator::DEFAULT_MODEL
 
     if GemSkills::Cache.cached?(gem_name, version) && !force
       say "Already cached: #{GemSkills::Cache.skill_path(gem_name, version)}"
@@ -85,9 +98,8 @@ class Gem::Commands::SkillCommand < Gem::Command
     say "-" * 60
     say "Cached: #{GemSkills::Cache.skill_path(gem_name, version)}"
     say ""
-    say "Tip: run 'bundle plugin install gem_skills' to enable 'bundle skill'."
   rescue GemSkills::Error => e
-    alert_error e.message
+    alert_error "#{gem_name}: #{e.message}"
   end
 
   def cmd_list
@@ -110,8 +122,27 @@ class Gem::Commands::SkillCommand < Gem::Command
 
   def cmd_purge
     gem_name = options[:args].shift
-    version  = options[:args].shift
-    raise Gem::CommandLineError, "Usage: gem skill purge GEM_NAME VERSION" unless gem_name && version
+    unless gem_name
+      alert_error "Usage: gem skill purge GEM_NAME VERSION\n       gem skill purge GEM_NAME --all"
+      return
+    end
+
+    if options[:all]
+      versions = GemSkills::Cache.versions(gem_name)
+      if versions.empty?
+        alert_error "No cached versions for '#{gem_name}'"
+        return
+      end
+      versions.each { |v| GemSkills::Cache.purge(gem_name, v) }
+      say "Purged #{versions.size} version(s) of #{gem_name}"
+      return
+    end
+
+    version = options[:args].shift
+    unless version
+      alert_error "Usage: gem skill purge GEM_NAME VERSION\n       gem skill purge GEM_NAME --all"
+      return
+    end
 
     unless GemSkills::Cache.cached?(gem_name, version)
       alert_error "Not cached: #{gem_name} #{version}"
