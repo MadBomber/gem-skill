@@ -1,8 +1,16 @@
-# gem-skill
-
-**gem-skill** generates Claude Code skill files from Ruby gem documentation and
-caches them globally so every project that uses a gem can share the same
-pre-built knowledge.
+<p align="center">
+<table style="width:38%;margin:0 auto;" border="0" cellpadding="8">
+  <tr>
+    <td width="40%"><img src="assets/images/gem-skill.jpg" alt="gem-skill logo" style="width:100%;display:block;"></td>
+    <td width="60%">
+      Generate Claude Code skill files from Ruby gem
+      documentation and caches them globally so every project that uses a gem
+      can share the same pre-built knowledge.<br><br>
+      <strong><a href="https://madbomber.github.io/gem-skill">Full documentation →</a></strong>
+    </td>
+  </tr>
+</table>
+</p>
 
 ## The problem it solves
 
