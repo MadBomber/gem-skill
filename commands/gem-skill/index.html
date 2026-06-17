@@ -647,6 +647,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gem-skill-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gem skill --version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gem-skill-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -872,6 +883,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gem-skill-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gem skill --version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gem-skill-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1026,6 +1048,10 @@ It works with any installed gem regardless of project context.</p>
 <td><code>--model MODEL</code>, <code>-m MODEL</code></td>
 <td>LLM model to use (overrides <code>GEMSKILL_MODEL</code>)</td>
 </tr>
+<tr>
+<td><code>--version</code>, <code>-v</code></td>
+<td>Print the installed gem-skill version and exit</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
@@ -1040,55 +1066,63 @@ It works with any installed gem regardless of project context.</p>
 </span></code></pre></div>
 <p>If a gem is not installed locally, gem-skill will install it automatically
 before generating the skill.</p>
+<hr />
+<h3 id="gem-skill-version"><code>gem skill --version</code><a class="headerlink" href="#gem-skill-version" title="Permanent link">&para;</a></h3>
+<p>Print the installed gem-skill version and exit.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>--version
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># 0.1.3</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>gem<span class="w"> </span>skill<span class="w"> </span>-v
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># 0.1.3</span>
+</span></code></pre></div>
 <p>All gems are processed concurrently — you'll see a live spinner per gem:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>⠋ Generating skills (claude-sonnet-4-6)
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  ✓ debug_me 1.1.0 done
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  ✓ faraday 2.12.0 done
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  ⠋ zeitwerk 2.8.2
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>⠋ Generating skills (claude-sonnet-4-6)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ✓ debug_me 1.1.0 done
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  ✓ faraday 2.12.0 done
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  ⠋ zeitwerk 2.8.2
 </span></code></pre></div>
 <hr />
 <h3 id="gem-skill-setup"><code>gem skill setup</code><a class="headerlink" href="#gem-skill-setup" title="Permanent link">&para;</a></h3>
 <p>Register gem-skill as a Bundler plugin (run once after <code>gem install gem-skill</code>).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>setup
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>setup
 </span></code></pre></div>
 <p>This enables <code>bundle skill</code> in any project on the machine. See
 <a href="../../installation/">Installation</a> for details.</p>
 <hr />
 <h3 id="gem-skill-list"><code>gem skill list</code><a class="headerlink" href="#gem-skill-list" title="Permanent link">&para;</a></h3>
 <p>Show all skills currently in the global cache.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>list
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>list
 </span></code></pre></div>
 <p><strong>Example output:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Cached skills in /Users/you/.gem/skills:
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  debug_me                       1.1.0
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  faraday                        2.12.0, 2.14.3
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  zeitwerk                       2.8.2
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>3 gem(s), 4 version(s) total.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Cached skills in /Users/you/.gem/skills:
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  debug_me                       1.1.0
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>  faraday                        2.12.0, 2.14.3
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  zeitwerk                       2.8.2
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>3 gem(s), 4 version(s) total.
 </span></code></pre></div>
 <hr />
 <h3 id="gem-skill-purge"><code>gem skill purge</code><a class="headerlink" href="#gem-skill-purge" title="Permanent link">&para;</a></h3>
 <p>Remove a cached skill version.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Remove a specific version</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>GEM_NAME<span class="w"> </span>VERSION
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Remove all cached versions of a gem</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>GEM_NAME<span class="w"> </span>--all
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Remove a specific version</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>GEM_NAME<span class="w"> </span>VERSION
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Remove all cached versions of a gem</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>GEM_NAME<span class="w"> </span>--all
 </span></code></pre></div>
 <p><strong>Examples:</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>faraday<span class="w"> </span><span class="m">2</span>.12.0
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>rails<span class="w"> </span>--all
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>faraday<span class="w"> </span><span class="m">2</span>.12.0
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>gem<span class="w"> </span>skill<span class="w"> </span>purge<span class="w"> </span>rails<span class="w"> </span>--all
 </span></code></pre></div>
 <hr />
 <h2 id="gem-install-with-skill"><code>gem install --with-skill</code><a class="headerlink" href="#gem-install-with-skill" title="Permanent link">&para;</a></h2>
 <p>Generate skills automatically as you install gems:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gem<span class="w"> </span>install<span class="w"> </span>faraday<span class="w"> </span>zeitwerk<span class="w"> </span>--with-skill
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>gem<span class="w"> </span>install<span class="w"> </span>faraday<span class="w"> </span>zeitwerk<span class="w"> </span>--with-skill
 </span></code></pre></div>
 <p>All gems install normally first. Skills are then generated concurrently after
 all installs complete — same spinner UI as <code>gem skill install</code>.</p>
 <p>This works for any <code>gem install</code> command, including version-pinned installs:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>gem<span class="w"> </span>install<span class="w"> </span>rails<span class="w"> </span>--version<span class="w"> </span><span class="s2">&quot;~&gt; 7.1&quot;</span><span class="w"> </span>--with-skill
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>gem<span class="w"> </span>install<span class="w"> </span>rails<span class="w"> </span>--version<span class="w"> </span><span class="s2">&quot;~&gt; 7.1&quot;</span><span class="w"> </span>--with-skill
 </span></code></pre></div>
 
 
