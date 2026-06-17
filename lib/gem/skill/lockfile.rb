@@ -11,9 +11,9 @@ module Gem::Skill
     end
 
     def self.parse(content)
-      specs   = parse_specs(content)
-      direct  = parse_direct_names(content)
-      direct.each_with_object({}) do |name, hash|
+      specs  = parse_specs(content)
+      direct = parse_direct_names(content) + parse_path_dep_names(content)
+      direct.uniq.each_with_object({}) do |name, hash|
         hash[name] = specs[name] if specs.key?(name)
       end
     end
@@ -34,6 +34,33 @@ module Gem::Skill
       end
 
       specs
+    end
+
+    def self.parse_path_dep_names(content)
+      in_path  = false
+      in_specs = false
+      in_gem   = false
+      names    = []
+
+      content.each_line do |line|
+        if line.strip == "PATH"
+          in_path = true
+          in_specs = false
+          in_gem   = false
+        elsif in_path && line.strip == "specs:"
+          in_specs = true
+        elsif in_path && in_specs && line =~ /\A {4}\S/
+          in_gem = true
+        elsif in_path && in_specs && in_gem && line =~ /\A {6}(\S+)/
+          names << Regexp.last_match(1)
+        elsif in_path && !line.start_with?(" ") && !line.strip.empty?
+          in_path  = false
+          in_specs = false
+          in_gem   = false
+        end
+      end
+
+      names
     end
 
     def self.parse_direct_names(content)
