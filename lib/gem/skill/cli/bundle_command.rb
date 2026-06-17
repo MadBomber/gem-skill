@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "async"
 require "fileutils"
 require "json"
 require "tty-spinner"
@@ -36,10 +37,9 @@ module Gem::Skill
         return
       end
 
-      force        = opts[:force]
-      model        = opts[:model] || Generator::DEFAULT_MODEL
-      errors       = []
-      errors_lock  = Mutex.new
+      force  = opts[:force]
+      model  = opts[:model] || Generator::DEFAULT_MODEL
+      errors = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Installing skills (#{model})",
@@ -47,16 +47,21 @@ module Gem::Skill
         output: $stderr
       )
 
-      threads = gems.map do |gem_name, version|
-        sp = multi.register("  [:spinner] :title")
-        sp.update(title: "#{gem_name} #{version}")
-        Thread.new(gem_name, version, sp) do |name, ver, spinner|
-          err = install_one(name, ver, spinner, force: force, model: model)
-          errors_lock.synchronize { errors << "#{name} #{ver}: #{err}" } if err
+      Async do
+        barrier = Async::Barrier.new
+        gems.each do |gem_name, version|
+          sp = multi.register("  [:spinner] :title")
+          sp.update(title: "#{gem_name} #{version}")
+          barrier.async do
+            err = install_one(gem_name, version, sp, force: force, model: model)
+            errors << "#{gem_name} #{version}: #{err}" if err
+          end
         end
+        barrier.wait
+      ensure
+        barrier.stop
       end
 
-      threads.each(&:join)
       Linker.prune_dead_links
 
       if errors.any?
@@ -67,12 +72,11 @@ module Gem::Skill
     end
 
     def self.refresh(opts = {})
-      gems         = Lockfile.gems
-      linked       = Linker.linked_gems.to_h { |e| [e[:gem_name], e[:version]] }
-      force        = opts[:force]
-      model        = opts[:model] || Generator::DEFAULT_MODEL
-      errors       = []
-      errors_lock  = Mutex.new
+      gems   = Lockfile.gems
+      linked = Linker.linked_gems.to_h { |e| [e[:gem_name], e[:version]] }
+      force  = opts[:force]
+      model  = opts[:model] || Generator::DEFAULT_MODEL
+      errors = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Refreshing skills (#{model})",
@@ -80,22 +84,27 @@ module Gem::Skill
         output: $stderr
       )
 
-      threads = gems.map do |gem_name, version|
-        sp = multi.register("  [:spinner] :title")
-        sp.update(title: "#{gem_name} #{version}")
-        Thread.new(gem_name, version, sp) do |name, ver, spinner|
-          err = if !force && linked[name] == ver
-            spinner.auto_spin
-            spinner.success("up to date")
-            nil
-          else
-            install_one(name, ver, spinner, force: force, model: model)
+      Async do
+        barrier = Async::Barrier.new
+        gems.each do |gem_name, version|
+          sp = multi.register("  [:spinner] :title")
+          sp.update(title: "#{gem_name} #{version}")
+          barrier.async do
+            err = if !force && linked[gem_name] == version
+              sp.auto_spin
+              sp.success("up to date")
+              nil
+            else
+              install_one(gem_name, version, sp, force: force, model: model)
+            end
+            errors << "#{gem_name} #{version}: #{err}" if err
           end
-          errors_lock.synchronize { errors << "#{name} #{ver}: #{err}" } if err
         end
+        barrier.wait
+      ensure
+        barrier.stop
       end
 
-      threads.each(&:join)
       Linker.prune_dead_links
 
       if errors.any?

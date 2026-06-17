@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rubygems/command"
+require "async"
 require "fileutils"
 require "json"
 require "tty-spinner"
@@ -76,12 +77,17 @@ class Gem::Commands::SkillCommand < Gem::Command
       output: $stderr
     )
 
-    threads = gem_names.map do |gem_name|
-      spinner = multi.register("  [:spinner] :title")
-      spinner.update(title: gem_name)
-      Thread.new(gem_name, spinner) { |name, sp| install_one(name, spinner: sp, force: force, model: model) }
+    Async do
+      barrier = Async::Barrier.new
+      gem_names.each do |gem_name|
+        spinner = multi.register("  [:spinner] :title")
+        spinner.update(title: gem_name)
+        barrier.async { install_one(gem_name, spinner: spinner, force: force, model: model) }
+      end
+      barrier.wait
+    ensure
+      barrier.stop
     end
-    threads.each(&:join)
 
     say "Tip: run 'bundle plugin install gem-skill' to enable 'bundle skill'."
   end
