@@ -1,8 +1,10 @@
 # Skill Files
 
-A `SKILL.md` is a structured Markdown document that gives Claude Code deep,
-practical knowledge about a Ruby gem. Claude reads it automatically when it is
-present in `.claude/skills/`.
+A `SKILL.md` is a structured Markdown document that gives an AI coding assistant
+deep, practical knowledge about a Ruby gem. It's a shared format — assistants
+such as Claude Code and OpenAI Codex read it automatically when it is present in
+the skills directory they look in (Claude Code uses `.claude/skills/`; see
+[Using the cache with other assistants](#using-with-other-assistants)).
 
 ## Format
 
@@ -34,12 +36,13 @@ Initializer patterns, environment variables, defaults worth knowing.
 How to test code that uses this gem: mocks, fakes, fixtures, VCR patterns.
 ```
 
-## What Claude does with it
+## What an assistant does with it
 
-When Claude Code opens a project containing `.claude/skills/`, it reads every
-`SKILL.md` it finds. This means:
+When an assistant opens a project whose skills directory contains `SKILL.md`
+files, it reads every one it finds (Claude Code, for instance, reads everything
+in `.claude/skills/`). This means:
 
-- Claude knows the correct API for the exact version you're using
+- The assistant knows the correct API for the exact version you're using
 - No token cost re-deriving usage from READMEs mid-conversation
 - The knowledge persists across conversation turns
 - Multiple gems can be in scope simultaneously
@@ -75,4 +78,44 @@ gem skill install my_gem --force
 
 Skills are cached per version. `faraday 2.12.0` and `faraday 2.14.3` each get
 their own `SKILL.md`. Symlinks in `.claude/skills/` point to the version
-matching your `Gemfile.lock`, so Claude always has the right version context.
+matching your `Gemfile.lock`, so the assistant always has the right version
+context.
+
+## Using with other assistants
+
+`SKILL.md` is not specific to one assistant. The `~/.gem/skills` cache is
+assistant-neutral; `bundle skill` links skills into `.claude/skills/`, which
+Claude Code reads automatically. Other assistants discover skills in their own
+roots:
+
+| Assistant | Global roots | Project-local roots |
+|---|---|---|
+| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
+| OpenAI Codex | `~/.codex/skills`, `~/.agents/skills` | `.agents/`, `.codex/` |
+
+**Project-local (recommended):** point `bundle skill` at the right directory with
+the `GEMSKILL_PROJECT_DIR` environment variable (default `.claude/skills`):
+
+```bash
+export GEMSKILL_PROJECT_DIR=".agents"   # or ".codex"
+bundle skill install                    # symlinks now land in .agents/
+```
+
+See [`GEMSKILL_PROJECT_DIR`](configuration.md#gemskill_project_dir) for the full
+table of suggested values.
+
+**Global:** to share cached skills across all projects for an assistant, symlink
+a cached version directory into its global root:
+
+```bash
+ln -s ~/.gem/skills/faraday/2.14.3 ~/.agents/skills/faraday
+```
+
+!!! note "Availability is not the same as activation"
+    Assistants differ in how a present `SKILL.md` becomes active. **Claude Code**
+    treats every `SKILL.md` under `.claude/skills/` as active automatically.
+    **OpenAI Codex** does *not* auto-activate a skill just because the file
+    exists — it must appear in the session's available-skills list, or you must
+    explicitly point Codex at it. So linking a skill into a Codex root makes it
+    *available* but may not make it *active* on its own; check your assistant's
+    skill-discovery rules.

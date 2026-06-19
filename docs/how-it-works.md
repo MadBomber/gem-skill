@@ -16,6 +16,9 @@ Gemfile.lock / gem name
       ↓
   Cache             write to ~/.gem/skills/<gem>/<version>/
       ↓
+  Verifier          (optional, --verify) check the skill's code against the
+                    gem's actual source; correct mismatches in place
+      ↓
   Linker            symlink .claude/skills/<gem> → cache dir
 ```
 
@@ -78,26 +81,70 @@ Manages the global skill cache. Structure:
 └── <gem_name>/
     └── <version>/
         ├── SKILL.md
-        └── metadata.json   (gem, version, model, generated_at, sources)
+        └── metadata.json   (gem, version, model, generated_at, sources,
+                             and after --verify: a "verification" block with
+                             source provenance + structured changes)
 ```
 
 `Cache::ROOT` is set once at load time from `GEMSKILL_DIR` (default: `~/.gem/skills`).
+
+`read_metadata` / `write_skill` / `merge_metadata` let the verifier rewrite a
+cached skill and annotate its metadata without clobbering the original
+`generated_at`, `model`, or `sources`.
+
+### Verifier
+
+`lib/gem/skill/verifier.rb`
+
+Optional second pass, enabled by `--verify`. Generation synthesizes prose
+sources (README, changelog, examples) which are frequently stale or wrong about
+exact signatures. The verifier re-checks the generated skill against the gem's
+**actual source code** — the only source of truth — and corrects mismatched
+method signatures, default argument values, visibility, return values, and
+behavioral claims.
+
+```ruby
+Verifier.new(gem_name, version, model:).verify(skill_content)
+# => Result(content:, changes:, changed:, verifiable:, source:, model:)
+```
+
+Ground truth comes from `Fetcher#source_code` (the gem's `lib/**/*.rb`), and
+`Fetcher#source_manifest` records which files were examined. Whether the skill
+actually changed is decided by a **deterministic diff** of the content before and
+after — not by trusting the model's self-report — so the exit code is reliable.
+If no installed source is available, `verifiable` is false and the skill is left
+untouched.
+
+Each correction in `changes` is a structured, issue-ready Hash
+(`category`, `symbol`, `skill_section`, `source_location`, `was`, `now`,
+`detail`, `source_evidence`) — detailed enough to file a documentation bug
+against the gem. The Runner writes these, plus source provenance, into the
+`verification` block of `metadata.json`.
 
 ### Linker
 
 `lib/gem/skill/linker.rb`
 
-Creates and manages directory symlinks in `.claude/skills/` inside a project:
+Creates and manages directory symlinks in the project's skill directory
+(default `.claude/skills/`, Claude Code's convention):
 
 ```
-.claude/skills/<gem_name>  →  ~/.gem/skills/<gem_name>/<version>/
+<project_dir>/<gem_name>  →  ~/.gem/skills/<gem_name>/<version>/
 ```
 
-Symlinks point to the **version directory**, not directly to `SKILL.md`.
-Claude Code discovers `SKILL.md` by reading inside the linked directory.
+The directory is `Linker.project_dir`, read from `GEMSKILL_PROJECT_DIR` each call
+(default `.claude/skills`). Codex users set it to `.agents` or `.codex` so
+`bundle skill` links into a Codex root instead. Symlinks point to the **version
+directory**, not directly to `SKILL.md`; the assistant discovers `SKILL.md` by
+reading inside the linked directory.
 
 `Linker.prune_dead_links` removes any symlink whose target no longer exists
 in the cache (e.g. after `gem skill purge`).
+
+The cache itself is assistant-neutral. `SKILL.md` is a shared format; other
+assistants read it from their own roots. Note that linking only makes a skill
+*available* — some assistants (e.g. Codex) require it to be in the available-skills
+list or referenced explicitly before it's *active*.
 
 ### Runner
 
@@ -107,12 +154,14 @@ Shared core used by both CLI commands. Drives one gem through the
 cache-check → generate → link sequence:
 
 ```ruby
-Runner.install_skill(gem_name, version, spinner, force:, model:)
-# Returns nil on success, error message string on failure
+Runner.install_skill(gem_name, version, spinner, force:, model:, verify:)
+# => Runner::Result(error:, verify_fixed:, change_count:)
 ```
 
-Returns the error message rather than raising, so the caller (the concurrent
-fiber) can record it without killing other in-flight fibers.
+Captures errors into the result rather than raising, so the caller (the
+concurrent fiber) can record them without killing other in-flight fibers. When
+`verify:` is set, the result's `verify_fixed` lets the CLI aggregate across all
+gems and exit `2` (`EXIT_VERIFY_FIXED`) if any skill was corrected.
 
 ---
 

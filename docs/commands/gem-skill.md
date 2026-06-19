@@ -18,6 +18,7 @@ gem skill install GEM_NAME [GEM_NAME ...]
 | Flag | Description |
 |------|-------------|
 | `--force`, `-f` | Regenerate even if a skill is already cached |
+| `--verify` | After generating, verify the skill's code against the gem's actual source and fix mismatches |
 | `--model MODEL`, `-m MODEL` | LLM model to use (overrides `GEMSKILL_MODEL`) |
 | `--version`, `-v` | Print the installed gem-skill version and exit |
 
@@ -32,10 +33,38 @@ gem skill install faraday zeitwerk dry-validation
 
 # Force regeneration with a specific model
 gem skill install rails --force --model claude-opus-4-8
+
+# Generate, then verify the result against the gem's source code
+gem skill install tty-spinner --verify
 ```
 
 If a gem is not installed locally, gem-skill will install it automatically
 before generating the skill.
+
+### Verifying against source (`--verify`)
+
+The generation pass synthesizes a skill from a gem's README, changelog, and
+examples. That prose is sometimes stale or wrong about exact method signatures,
+default argument values, and behavior. `--verify` adds a second pass that checks
+the generated skill against the gem's **actual installed source code** (the only
+source of truth) and rewrites anything the source contradicts.
+
+Verification requires the gem to be installed locally (it reads `lib/**/*.rb`).
+If no source is available, the skill is left untouched.
+
+**Exit status** (so CI can detect README/source drift):
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success — skill was clean, or `--verify` not used |
+| `1` | Error |
+| `2` | `--verify` found and corrected problems |
+
+Either way, `metadata.json` gains a `verification` block recording that the gem's
+actual source was consulted, which files were examined, and — when fixes were
+applied — an array of structured, issue-ready corrections (affected symbol,
+source location, what the skill said vs. the truth, and the proving source
+snippet). See [Cache layout](cache.md#metadatajson) for the full schema.
 
 ---
 

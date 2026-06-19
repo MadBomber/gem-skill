@@ -19,6 +19,10 @@ module Gem::Skill
     README_CANDIDATES    = %w[README.md README.rdoc README.txt README].freeze
     CHANGELOG_CANDIDATES = %w[CHANGELOG.md CHANGELOG.rdoc HISTORY.md CHANGES.md].freeze
 
+    # Cap on concatenated source size handed to the verifier, to protect the
+    # context window on large gems. Files are added whole until the cap is hit.
+    SOURCE_MAX_CHARS = 150_000
+
     attr_reader :gem_name, :version
 
     def initialize(gem_name, version)
@@ -52,7 +56,66 @@ module Gem::Skill
       @examples ||= local_examples
     end
 
+    # The gem's actual Ruby source (lib/**/*.rb), concatenated with per-file
+    # headers. This is the ground truth the verifier checks the skill against.
+    # Returns nil when the gem isn't installed locally or has no lib sources —
+    # verification is only possible against installed source.
+    def source_code
+      source_bundle&.fetch(:code)
+    end
+
+    # Provenance for the source that source_code returned: which files were
+    # included, the total size, and whether the SOURCE_MAX_CHARS cap truncated
+    # the set. Returns nil when no source was available. Recorded in metadata so
+    # a verification result can be traced back to exactly what was examined.
+    def source_manifest
+      bundle = source_bundle
+      return nil unless bundle
+
+      { files: bundle[:files], chars: bundle[:chars], truncated: bundle[:truncated] }
+    end
+
     private
+
+    def source_bundle
+      return @source_bundle if defined?(@source_bundle)
+
+      @source_bundle = build_source_bundle
+    end
+
+    def build_source_bundle
+      dir = gem_dir
+      return nil unless dir
+
+      lib = File.join(dir, "lib")
+      return nil unless File.directory?(lib)
+
+      files = Dir.glob(File.join(lib, "**", "*.rb")).sort
+      return nil if files.empty?
+
+      out       = +""
+      included  = []
+      truncated = false
+
+      files.each do |path|
+        relative = path.delete_prefix("#{dir}/")
+        body     = File.read(path, encoding: "utf-8")
+        chunk    = "### #{relative}\n\n```ruby\n#{body}\n```\n\n"
+        if !out.empty? && out.length + chunk.length > SOURCE_MAX_CHARS
+          truncated = true
+          break
+        end
+
+        out << chunk
+        included << relative
+      end
+
+      return nil if out.empty?
+
+      { code: out, files: included, chars: out.length, truncated: truncated }
+    rescue Encoding::InvalidByteSequenceError, Encoding::UndefinedConversionError
+      nil
+    end
 
     # --- local gem spec ---
 

@@ -62,4 +62,54 @@ class LinkerTest < Minitest::Test
     assert_empty Gem::Skill::Linker.linked_gems(@project_dir)
   end
 
+  # --- GEMSKILL_PROJECT_DIR ---
+
+  def test_project_dir_defaults_to_claude_skills
+    with_env("GEMSKILL_PROJECT_DIR", nil) do
+      assert_equal ".claude/skills", Gem::Skill::Linker.project_dir
+    end
+  end
+
+  def test_project_dir_honors_env_override
+    with_env("GEMSKILL_PROJECT_DIR", ".agents") do
+      assert_equal ".agents", Gem::Skill::Linker.project_dir
+    end
+  end
+
+  def test_project_dir_falls_back_to_default_when_blank
+    with_env("GEMSKILL_PROJECT_DIR", "  ") do
+      assert_equal ".claude/skills", Gem::Skill::Linker.project_dir
+    end
+  end
+
+  def test_link_writes_into_custom_project_dir
+    with_env("GEMSKILL_PROJECT_DIR", ".codex") do
+      Gem::Skill::Linker.link(@gem_name, @version, @project_dir)
+      link = File.join(@project_dir, ".codex", @gem_name)
+      assert File.symlink?(link), "expected symlink under custom project dir"
+      assert File.exist?(File.join(link, "SKILL.md"))
+      # and round-trips through linked_gems
+      entries = Gem::Skill::Linker.linked_gems(@project_dir)
+      assert_equal @gem_name, entries.first[:gem_name]
+    end
+  end
+
+  private
+
+  def with_env(key, value)
+    original = ENV[key]
+    if value.nil?
+      ENV.delete(key)
+    else
+      ENV[key] = value
+    end
+    yield
+  ensure
+    if original.nil?
+      ENV.delete(key)
+    else
+      ENV[key] = original
+    end
+  end
+
 end

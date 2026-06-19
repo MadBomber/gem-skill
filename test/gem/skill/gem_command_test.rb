@@ -212,6 +212,76 @@ class GemCommandTest < Minitest::Test
     assert_match "Not cached", @errors.string
   end
 
+  # --- cmd_verify ---
+
+  def test_verify_shows_error_without_gem_name
+    set_args
+    @cmd.send(:cmd_verify)
+    assert_match "gem_name required", @errors.string
+  end
+
+  def test_verify_one_errors_when_gem_not_installed
+    @cmd.stub(:resolve_installed_version, nil) do
+      result = @cmd.send(:verify_one, "ghost_gem", spinner: fake_spinner, model: "m")
+      refute result.ok?
+      assert_match "not installed", @errors.string
+    end
+  end
+
+  def test_verify_one_errors_when_skill_not_cached
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      result = @cmd.send(:verify_one, "my_gem", spinner: fake_spinner, model: "m")
+      refute result.ok?
+      assert_match "no cached skill", @errors.string
+    end
+  end
+
+  def test_verify_one_does_not_generate
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      # Generation must never happen in the verify path
+      Gem::Skill::Generator.stub(:new, ->(*) { raise "should not generate during verify" }) do
+        result = @cmd.send(:verify_one, "uncached_gem", spinner: fake_spinner, model: "m")
+        refute result.ok?
+        assert_match "no cached skill", @errors.string
+      end
+    end
+  end
+
+  def test_verify_one_verifies_cached_skill_in_place
+    pre_cache("my_gem", "1.0.0")
+    fixed = Gem::Skill::Verifier::Result.new(
+      content: "# corrected", changes: [{ "category" => "signature" }],
+      changed: true, verifiable: true, source: { files: ["lib/x.rb"], chars: 10, truncated: false }, model: "m"
+    )
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_linker do
+        stub_verifier(fixed) do
+          result = @cmd.send(:verify_one, "my_gem", spinner: fake_spinner, model: "m")
+          assert result.verify_fixed
+          assert_equal "# corrected", Gem::Skill::Cache.read("my_gem", "1.0.0")
+          assert Gem::Skill::Cache.read_metadata("my_gem", "1.0.0")["verification"]["used_source_code"]
+        end
+      end
+    end
+  end
+
+  def test_cmd_verify_exits_with_fixed_code_when_corrections_applied
+    pre_cache("my_gem", "1.0.0")
+    set_args("my_gem")
+    fixed = Gem::Skill::Verifier::Result.new(
+      content: "# corrected", changes: [{ "category" => "signature" }],
+      changed: true, verifiable: true, source: nil, model: "m"
+    )
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_linker do
+        stub_verifier(fixed) do
+          err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_verify) }
+          assert_equal Gem::Skill::EXIT_VERIFY_FIXED, err.exit_code
+        end
+      end
+    end
+  end
+
   private
 
   def set_args(*args)
@@ -252,6 +322,24 @@ class GemCommandTest < Minitest::Test
     obj = Object.new
     obj.define_singleton_method(:generate) { |**| raise Gem::Skill::Error, "no docs found" }
     obj
+  end
+
+  def fake_spinner
+    spinner = Object.new
+    %i[auto_spin success error update].each do |m|
+      spinner.define_singleton_method(m) { |*| }
+    end
+    spinner
+  end
+
+  def stub_linker
+    Gem::Skill::Linker.stub(:link, ->(*) {}) { yield }
+  end
+
+  def stub_verifier(result)
+    obj = Object.new
+    obj.define_singleton_method(:verify) { |_| result }
+    Gem::Skill::Verifier.stub(:new, ->(*, **) { obj }) { yield }
   end
 
 end

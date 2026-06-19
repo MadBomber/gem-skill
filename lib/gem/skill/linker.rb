@@ -3,12 +3,26 @@
 require "fileutils"
 
 module Gem::Skill
-  # Manages .claude/skills/ symlinks in a project, pointing to ~/.gem/skills cache.
+  # Manages per-project skill symlinks pointing into the ~/.gem/skills cache.
   # Each symlink is a directory link: <gem_name> -> ~/.gem/skills/<gem>/<version>/
-  # Claude Code discovers skills by reading SKILL.md inside each linked directory.
+  # The assistant discovers skills by reading SKILL.md inside each linked directory.
+  #
+  # The project-relative directory is configurable via GEMSKILL_PROJECT_DIR
+  # (default ".claude/skills" for Claude Code). Codex users might set it to
+  # ".agents" or ".codex"; see the configuration docs.
   module Linker
+    DEFAULT_PROJECT_DIR = ".claude/skills"
+
+    # Project-relative directory where skill symlinks are written. Read from the
+    # environment each call so a changed GEMSKILL_PROJECT_DIR takes effect without
+    # reloading.
+    def self.project_dir
+      value = ENV.fetch("GEMSKILL_PROJECT_DIR", DEFAULT_PROJECT_DIR).to_s.strip
+      value.empty? ? DEFAULT_PROJECT_DIR : value
+    end
+
     def self.skills_dir(project_root = Dir.pwd)
-      File.join(project_root, ".claude", "skills")
+      File.join(project_root, project_dir)
     end
 
     def self.link(gem_name, version, project_root = Dir.pwd)

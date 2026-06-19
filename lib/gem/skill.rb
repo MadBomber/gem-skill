@@ -4,12 +4,17 @@ require_relative "skill/version"
 require_relative "skill/cache"
 require_relative "skill/fetcher"
 require_relative "skill/generator"
+require_relative "skill/verifier"
 require_relative "skill/linker"
 require_relative "skill/lockfile"
 require_relative "skill/runner"
 
 module Gem::Skill
   class Error < StandardError; end
+
+  # Exit status used when --verify found and corrected mistakes in a generated
+  # skill (grep-style: 0 = clean, 1 = error, 2 = verify applied fixes).
+  EXIT_VERIFY_FIXED = 2
 
   ENV_KEY_MAP = {
     anthropic_api_key:  "ANTHROPIC_API_KEY",

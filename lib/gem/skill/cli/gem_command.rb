@@ -14,6 +14,7 @@ class Gem::Commands::SkillCommand < Gem::Command
     super "skill", "Manage Claude Code AI skills for Ruby gems"
 
     add_option("-f", "--force",         "Regenerate even if already cached") { |_, o| o[:force] = true }
+    add_option("--verify",              "Verify generated skill against gem source and fix mismatches (exit #{Gem::Skill::EXIT_VERIFY_FIXED} if fixes applied)") { |_, o| o[:verify] = true }
     add_option("-a", "--all",           "Purge all cached versions of a gem") { |_, o| o[:all] = true }
     add_option("-m", "--model MODEL",   "LLM model to use (default: #{Gem::Skill::Generator::DEFAULT_MODEL})") do |model, o|
       o[:model] = model
@@ -22,11 +23,12 @@ class Gem::Commands::SkillCommand < Gem::Command
   end
 
   def arguments
-    "SUBCOMMAND  one of: install, list, purge, setup"
+    "SUBCOMMAND  one of: install, verify, list, purge, setup"
   end
 
   def usage
     "#{program_name} install GEM_NAME [GEM_NAME ...]\n" \
+    "       #{program_name} verify GEM_NAME [GEM_NAME ...]\n" \
     "       #{program_name} list\n" \
     "       #{program_name} purge GEM_NAME VERSION\n" \
     "       #{program_name} purge GEM_NAME --all\n" \
@@ -36,6 +38,8 @@ class Gem::Commands::SkillCommand < Gem::Command
   def description
     <<~DESC
       install   Generate and cache a SKILL.md for a gem.
+      verify    Verify an already-cached skill against the gem's source and fix
+                mismatches (does not generate; errors if not cached).
       list      Show all skills in the global cache (~/.gem/skills).
       purge     Remove a specific cached version.
       setup     Register gem-skill as a Bundler plugin (run once after install).
@@ -53,6 +57,7 @@ class Gem::Commands::SkillCommand < Gem::Command
     subcmd = options[:args].shift
     case subcmd
     when "install" then cmd_install
+    when "verify"  then cmd_verify
     when "list"    then cmd_list
     when "purge"   then cmd_purge
     when "setup"   then cmd_setup
@@ -75,8 +80,9 @@ class Gem::Commands::SkillCommand < Gem::Command
       return
     end
 
-    force = options[:force]
-    model = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
+    force  = options[:force]
+    verify = options[:verify]
+    model  = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
 
     multi = TTY::Spinner::Multi.new(
       "[:spinner] Generating skills (#{model})",
@@ -84,12 +90,13 @@ class Gem::Commands::SkillCommand < Gem::Command
       output: $stderr
     )
 
+    results = []
     Async do
       barrier = Async::Barrier.new
       gem_names.each do |gem_name|
         spinner = multi.register("  [:spinner] :title")
         spinner.update(title: gem_name)
-        barrier.async { install_one(gem_name, spinner: spinner, force: force, model: model) }
+        barrier.async { results << install_one(gem_name, spinner: spinner, force: force, model: model, verify: verify) }
       end
       barrier.wait
     ensure
@@ -97,9 +104,15 @@ class Gem::Commands::SkillCommand < Gem::Command
     end
 
     say "Tip: run 'bundle plugin install gem-skill' to enable 'bundle skill'."
+
+    fixed = results.count(&:verify_fixed)
+    if verify && fixed.positive?
+      say "Verify corrected #{fixed} skill(s) against gem source."
+      terminate_interaction Gem::Skill::EXIT_VERIFY_FIXED
+    end
   end
 
-  def install_one(gem_name, spinner:, force:, model:)
+  def install_one(gem_name, spinner:, force:, model:, verify: false)
     spinner.auto_spin
     version = resolve_installed_version(gem_name)
     if version.nil?
@@ -107,11 +120,77 @@ class Gem::Commands::SkillCommand < Gem::Command
       version = install_gem(gem_name)
     end
     spinner.update(title: "#{gem_name} #{version}")
-    err = Gem::Skill::Runner.install_skill(gem_name, version, spinner, force: force, model: model)
-    alert_error "#{gem_name}: #{err}" if err
+    result = Gem::Skill::Runner.install_skill(gem_name, version, spinner, force: force, model: model, verify: verify)
+    alert_error "#{gem_name}: #{result.error}" if result.error
+    result
   rescue Gem::Skill::Error => e
     spinner.error("failed")
     alert_error "#{gem_name}: #{e.message}"
+    Gem::Skill::Runner::Result.failure(e.message)
+  end
+
+  def cmd_verify
+    gem_names = options[:args].dup
+    options[:args].clear
+
+    if gem_names.empty?
+      alert_error "gem_name required. Usage: gem skill verify GEM_NAME [GEM_NAME ...]"
+      return
+    end
+
+    model = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
+
+    multi = TTY::Spinner::Multi.new(
+      "[:spinner] Verifying skills (#{model})",
+      format: :dots,
+      output: $stderr
+    )
+
+    results = []
+    Async do
+      barrier = Async::Barrier.new
+      gem_names.each do |gem_name|
+        spinner = multi.register("  [:spinner] :title")
+        spinner.update(title: gem_name)
+        barrier.async { results << verify_one(gem_name, spinner: spinner, model: model) }
+      end
+      barrier.wait
+    ensure
+      barrier.stop
+    end
+
+    fixed = results.count(&:verify_fixed)
+    if fixed.positive?
+      say "Verify corrected #{fixed} skill(s) against gem source."
+      terminate_interaction Gem::Skill::EXIT_VERIFY_FIXED
+    end
+  end
+
+  # Verify an already-cached skill in place. Never generates: the gem must be
+  # installed (verification needs its source) and the skill must already be cached.
+  def verify_one(gem_name, spinner:, model:)
+    spinner.auto_spin
+    version = resolve_installed_version(gem_name)
+    if version.nil?
+      spinner.error("not installed")
+      alert_error "#{gem_name}: not installed locally; verification needs the gem's source. Run 'gem install #{gem_name}' first."
+      return Gem::Skill::Runner::Result.failure("not installed")
+    end
+
+    spinner.update(title: "#{gem_name} #{version}")
+    unless Gem::Skill::Cache.cached?(gem_name, version)
+      spinner.error("not cached")
+      alert_error "#{gem_name} #{version}: no cached skill to verify. Run 'gem skill install #{gem_name}' first."
+      return Gem::Skill::Runner::Result.failure("not cached")
+    end
+
+    result = Gem::Skill::Runner.install_skill(gem_name, version, spinner, force: false, model: model, verify: true)
+    alert_error "#{gem_name}: #{result.error}" if result.error
+    result
+  rescue Gem::Skill::Error => e
+    spinner.error("failed")
+    alert_error "#{gem_name}: #{e.message}"
+    Gem::Skill::Runner::Result.failure(e.message)
   end
 
   def cmd_list

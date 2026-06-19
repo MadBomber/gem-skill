@@ -2,7 +2,9 @@
 
 The `bundle skill` command is project-aware: it reads `Gemfile.lock` to
 determine which gems and versions are in use, generates skills for all of them,
-and links the results into `.claude/skills/` in the project root.
+and links the results into `.claude/skills/` (Claude Code's skill directory) in
+the project root. The generated `SKILL.md` files are a shared format that other
+assistants read too — see [Using with other assistants](../skill-files.md#using-with-other-assistants).
 
 ## Global options
 
@@ -42,6 +44,7 @@ bundle skill install [OPTIONS]
 | Flag | Description |
 |------|-------------|
 | `--force` | Regenerate even if skills are already cached |
+| `--verify` | Verify generated skills against each gem's source and fix mismatches (exit `2` if any fixes applied) |
 | `--model MODEL` | LLM model to use (overrides `GEMSKILL_MODEL`) |
 | `--version`, `-v` | Print the installed gem-skill version and exit |
 
@@ -66,7 +69,10 @@ All gems are processed concurrently:
   ✓ ruby_llm 1.16.0 done
 ```
 
-After completion, each skill is symlinked into `.claude/skills/`:
+After completion, each skill is symlinked into the project skill directory
+(`.claude/skills/` by default; set
+[`GEMSKILL_PROJECT_DIR`](../configuration.md#gemskill_project_dir) to change it,
+e.g. `.agents` for Codex):
 
 ```
 your-project/.claude/skills/
@@ -75,7 +81,8 @@ your-project/.claude/skills/
 └── zeitwerk →  ~/.gem/skills/zeitwerk/2.8.2/
 ```
 
-Claude Code automatically reads `SKILL.md` from each linked directory.
+The assistant automatically reads `SKILL.md` from each linked directory (Claude
+Code reads `.claude/skills/`; other assistants use their own roots).
 
 ---
 

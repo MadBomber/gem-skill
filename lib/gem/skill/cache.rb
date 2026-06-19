@@ -42,6 +42,30 @@ module Gem::Skill
       File.read(path)
     end
 
+    # Read metadata.json back as a Hash with string keys. Returns {} if absent
+    # or unparseable.
+    def self.read_metadata(gem_name, version)
+      path = metadata_path(gem_name, version)
+      return {} unless File.exist?(path)
+
+      JSON.parse(File.read(path))
+    rescue JSON::ParserError
+      {}
+    end
+
+    # Overwrite just the SKILL.md content, leaving metadata untouched.
+    def self.write_skill(gem_name, version, skill_content)
+      File.write(skill_path(gem_name, version), skill_content)
+    end
+
+    # Merge additional keys into the existing metadata.json, preserving
+    # generated_at, model, sources, etc. Keys are normalized to strings so a
+    # symbol key never collides with its string twin.
+    def self.merge_metadata(gem_name, version, extra)
+      data = read_metadata(gem_name, version).merge(extra.transform_keys(&:to_s))
+      File.write(metadata_path(gem_name, version), JSON.generate(data))
+    end
+
     def self.versions(gem_name)
       dir = File.join(ROOT, gem_name)
       return [] unless Dir.exist?(dir)

@@ -8,7 +8,8 @@ require "gem/skill"
 
 module Gem::Skill
   # Handles `bundle skill SUBCOMMAND` via Bundler's plugin API (plugins.rb).
-  # Project-aware: reads Gemfile.lock and manages .claude/skills/ symlinks.
+  # Project-aware: reads Gemfile.lock and manages project skill symlinks
+  # (directory set by GEMSKILL_PROJECT_DIR, default .claude/skills/).
   module BundlerCommand
     SUBCOMMANDS = %w[install refresh list].freeze
 
@@ -42,9 +43,11 @@ module Gem::Skill
         return
       end
 
-      force  = opts[:force]
-      model  = opts[:model] || Generator::DEFAULT_MODEL
-      errors = []
+      force   = opts[:force]
+      verify  = opts[:verify]
+      model   = opts[:model] || Generator::DEFAULT_MODEL
+      errors  = []
+      results = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Installing skills (#{model})",
@@ -58,8 +61,9 @@ module Gem::Skill
           sp = multi.register("  [:spinner] :title")
           sp.update(title: "#{gem_name} #{version}")
           barrier.async do
-            err = install_one(gem_name, version, sp, force: force, model: model)
-            errors << "#{gem_name} #{version}: #{err}" if err
+            result = install_one(gem_name, version, sp, force: force, model: model, verify: verify)
+            results << result
+            errors << "#{gem_name} #{version}: #{result.error}" if result.error
           end
         end
         barrier.wait
@@ -69,14 +73,17 @@ module Gem::Skill
 
       Linker.prune_dead_links
       report_errors(errors)
+      report_verify(results, verify)
     end
 
     def self.refresh(opts = {})
       gems   = Lockfile.gems
-      linked = Linker.linked_gems.to_h { |e| [e[:gem_name], e[:version]] }
-      force  = opts[:force]
-      model  = opts[:model] || Generator::DEFAULT_MODEL
-      errors = []
+      linked  = Linker.linked_gems.to_h { |e| [e[:gem_name], e[:version]] }
+      force   = opts[:force]
+      verify  = opts[:verify]
+      model   = opts[:model] || Generator::DEFAULT_MODEL
+      errors  = []
+      results = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Refreshing skills (#{model})",
@@ -90,14 +97,15 @@ module Gem::Skill
           sp = multi.register("  [:spinner] :title")
           sp.update(title: "#{gem_name} #{version}")
           barrier.async do
-            err = if !force && linked[gem_name] == version
+            result = if !force && linked[gem_name] == version
               sp.auto_spin
               sp.success("up to date")
-              nil
+              Runner::Result.success
             else
-              install_one(gem_name, version, sp, force: force, model: model)
+              install_one(gem_name, version, sp, force: force, model: model, verify: verify)
             end
-            errors << "#{gem_name} #{version}: #{err}" if err
+            results << result
+            errors << "#{gem_name} #{version}: #{result.error}" if result.error
           end
         end
         barrier.wait
@@ -107,6 +115,7 @@ module Gem::Skill
 
       Linker.prune_dead_links
       report_errors(errors)
+      report_verify(results, verify)
     end
 
     def self.list
@@ -120,7 +129,7 @@ module Gem::Skill
       ok     = entries.count { |e| e[:valid] }
       broken = entries.size - ok
 
-      puts "Skills linked in .claude/skills/  (#{ok} ok#{broken > 0 ? ", #{broken} broken" : ""}):"
+      puts "Skills linked in #{Linker.project_dir}/  (#{ok} ok#{broken > 0 ? ", #{broken} broken" : ""}):"
       puts ""
       entries.each do |e|
         status = e[:valid] ? "ok    " : "BROKEN"
@@ -130,9 +139,9 @@ module Gem::Skill
 
     # --- private ---
 
-    def self.install_one(gem_name, version, spinner, force:, model:)
+    def self.install_one(gem_name, version, spinner, force:, model:, verify: false)
       spinner.auto_spin
-      Runner.install_skill(gem_name, version, spinner, force: force, model: model)
+      Runner.install_skill(gem_name, version, spinner, force: force, model: model, verify: verify)
     end
     private_class_method :install_one
 
@@ -144,6 +153,20 @@ module Gem::Skill
     end
     private_class_method :report_errors
 
+    # When --verify applied fixes, report and exit non-zero so callers/CI can
+    # detect that the README-derived skill disagreed with the source.
+    def self.report_verify(results, verify)
+      return unless verify
+
+      fixed = results.count(&:verify_fixed)
+      return if fixed.zero?
+
+      warn ""
+      warn "Verify corrected #{fixed} skill(s) against gem source."
+      exit Gem::Skill::EXIT_VERIFY_FIXED
+    end
+    private_class_method :report_verify
+
     def self.parse_options(args)
       opts      = {}
       remaining = []
@@ -151,6 +174,7 @@ module Gem::Skill
       args.each do |arg|
         case arg
         when "--force"           then opts[:force] = true
+        when "--verify"          then opts[:verify] = true
         when "--version", "-v"   then opts[:version] = true
         when /\A--model(?:=(.+))?\z/
           opts[:model] = $1 || args[args.index(arg) + 1]
@@ -170,13 +194,17 @@ module Gem::Skill
 
         Subcommands:
           install   Generate and link skills for all gems in Gemfile.lock
-          refresh   Re-sync .claude/skills/ after bundle update
+          refresh   Re-sync the project skill directory after bundle update
           list      Show skills linked in this project
 
         Options:
           --force         Regenerate even if already cached
+          --verify        Verify generated skills against gem source and fix mismatches
           --model MODEL   LLM model to use (default: #{Generator::DEFAULT_MODEL})
           --version, -v   Print gem-skill version and exit
+
+        Env:
+          GEMSKILL_PROJECT_DIR   Project dir for symlinks (default: .claude/skills)
       USAGE
     end
     private_class_method :usage

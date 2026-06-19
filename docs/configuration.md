@@ -37,6 +37,43 @@ Controls where generated skills are cached.
 Useful for sharing a skill cache across machines via a network drive, or for
 keeping skills in a non-standard location.
 
+### `GEMSKILL_PROJECT_DIR`
+
+The project-relative directory where `bundle skill` writes its symlinks into the
+cache. Change it to match whichever assistant you use.
+
+| | |
+|---|---|
+| **Default** | `.claude/skills` (Claude Code) |
+| **Example** | `export GEMSKILL_PROJECT_DIR=".agents"` |
+
+`SKILL.md` is a shared format, but each assistant looks for skills in its own
+project directory:
+
+| Assistant    | Suggested `GEMSKILL_PROJECT_DIR` |
+|--------------|----------------------------------|
+| Claude Code  | `.claude/skills` (default)       |
+| OpenAI Codex | `.agents` or `.codex`            |
+
+```bash
+# Claude Code (default — no need to set anything)
+bundle skill install
+
+# OpenAI Codex — link into a Codex project root instead
+export GEMSKILL_PROJECT_DIR=".agents"
+bundle skill install        # symlinks now land in .agents/
+```
+
+A blank or unset value falls back to the `.claude/skills` default.
+
+!!! note "Availability is not activation"
+    Setting `GEMSKILL_PROJECT_DIR` controls *where the symlinks are written*. It
+    does not change how an assistant decides a skill is active. Claude Code
+    activates every `SKILL.md` under `.claude/skills/` automatically; other
+    assistants (e.g. Codex) may require the skill to be in the session's
+    available-skills list or referenced explicitly. See
+    [Using with other assistants](skill-files.md#using-with-other-assistants).
+
 ### `GEMSKILL_MODEL`
 
 Controls which LLM model is used when generating skills.

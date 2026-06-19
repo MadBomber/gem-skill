@@ -3,9 +3,10 @@
   <tr>
     <td width="40%"><img src="assets/images/gem-skill.jpg" alt="gem-skill logo" style="width:100%;display:block;"></td>
     <td width="60%">
-      Generate Claude Code skill files from Ruby gem
-      documentation and caches them globally so every project that uses a gem
-      can share the same pre-built knowledge.<br><br>
+      Generate <code>SKILL.md</code> files for AI coding assistants
+      (Claude Code, OpenAI Codex, and others) from Ruby gem documentation,
+      and cache them globally so every project that uses a gem can share the
+      same pre-built knowledge.<br><br>
       <strong><a href="https://madbomber.github.io/gem-skill">Full documentation →</a></strong>
     </td>
   </tr>
@@ -14,14 +15,15 @@
 
 ## The problem it solves
 
-Every time Claude Code encounters a gem it hasn't seen in the current context,
-it re-reads the README, scans examples, and figures out the API. That costs
-tokens and time — and the result evaporates when the conversation ends.
+Every time an AI coding assistant encounters a gem it hasn't seen in the current
+context, it re-reads the README, scans examples, and figures out the API. That
+costs tokens and time — and the result evaporates when the conversation ends.
 
 `gem-skill` runs that pipeline once, offline, and stores the output as a
-`SKILL.md` in `~/.gem/skills`. Projects symlink to the cached version, so
-Claude has accurate, version-specific knowledge about each gem without
-repeating the ingestion work.
+`SKILL.md` in `~/.gem/skills`. Projects symlink to the cached version, so your
+assistant has accurate, version-specific knowledge about each gem without
+repeating the ingestion work. `SKILL.md` is a shared format — Claude Code,
+OpenAI Codex, and other assistants all read it.
 
 ## Quick start
 
@@ -53,7 +55,8 @@ gem README / changelog / RubyGems API
         ↓
    Linker creates .claude/skills/<gem> → cache dir
         ↓
-   Claude Code reads SKILL.md automatically
+   The assistant reads SKILL.md automatically
+   (Claude Code from .claude/skills/; other assistants from their own roots)
 ```
 
 All concurrent work is handled by async fibers — multiple gems are processed
@@ -66,4 +69,5 @@ simultaneously with live TTY spinner progress.
 - **Concurrent** — all LLM calls run concurrently via async fibers
 - **Two interfaces** — `gem skill` for global cache management, `bundle skill` for project-aware linking
 - **Auto-install** — `gem install --with-skill` generates skills during normal gem installation
-- **Configurable** — `GEMSKILL_DIR` and `GEMSKILL_MODEL` environment variables
+- **Configurable** — `GEMSKILL_DIR`, `GEMSKILL_PROJECT_DIR`, and `GEMSKILL_MODEL` environment variables
+- **Multi-assistant** — `SKILL.md` works with Claude Code, OpenAI Codex, and others; `GEMSKILL_PROJECT_DIR` points project links at the right directory

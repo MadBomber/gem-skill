@@ -269,6 +269,57 @@ class FetcherTest < Minitest::Test
     end
   end
 
+  # --- source_code ---
+
+  def test_source_code_returns_nil_when_gem_not_found
+    @fetcher.stub(:gem_dir, nil) do
+      assert_nil @fetcher.source_code
+    end
+  end
+
+  def test_source_code_returns_nil_when_no_lib_dir
+    with_fake_gem_dir do |_dir|
+      assert_nil @fetcher.source_code
+    end
+  end
+
+  def test_source_code_returns_nil_when_lib_has_no_ruby_files
+    with_fake_gem_dir do |dir|
+      FileUtils.mkdir_p(File.join(dir, "lib"))
+      assert_nil @fetcher.source_code
+    end
+  end
+
+  def test_source_code_concatenates_lib_ruby_files_with_headers
+    with_fake_gem_dir do |dir|
+      lib = File.join(dir, "lib")
+      FileUtils.mkdir_p(File.join(lib, "chunker"))
+      File.write(File.join(lib, "chunker.rb"), "module Chunker; end")
+      File.write(File.join(lib, "chunker", "core.rb"), "class Chunker::Core; end")
+
+      result = @fetcher.source_code
+      assert_match "lib/chunker.rb", result
+      assert_match "module Chunker; end", result
+      assert_match "lib/chunker/core.rb", result
+      assert_match "class Chunker::Core; end", result
+      assert_match "```ruby", result
+    end
+  end
+
+  def test_source_code_excludes_non_ruby_and_non_lib_files
+    with_fake_gem_dir do |dir|
+      FileUtils.mkdir_p(File.join(dir, "lib"))
+      File.write(File.join(dir, "lib", "chunker.rb"), "module Chunker; end")
+      File.write(File.join(dir, "lib", "data.txt"), "not ruby")
+      File.write(File.join(dir, "README.md"), "# readme not source")
+
+      result = @fetcher.source_code
+      assert_match "module Chunker; end", result
+      refute_match "not ruby", result
+      refute_match "readme not source", result
+    end
+  end
+
   # --- fetch_all integration ---
 
   def test_fetch_all_returns_only_populated_sources

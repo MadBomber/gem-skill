@@ -5,9 +5,10 @@
   <tr>
     <td width="40%"><img src="docs/assets/images/gem-skill.jpg" alt="gem-skill logo" width="100%"></td>
     <td width="60%">
-      Generate Claude Code skill files from Ruby gem
-      documentation and caches them globally so every project that uses a gem
-      can share the same pre-built knowledge.<br><br>
+      Generate <code>SKILL.md</code> files for AI coding assistants
+      (Claude Code, OpenAI Codex, and others) from Ruby gem documentation,
+      and cache them globally so every project that uses a gem can share the
+      same pre-built knowledge.<br><br>
       <strong><a href="https://madbomber.github.io/gem-skill">Full documentation →</a></strong>
     </td>
   </tr>
@@ -16,14 +17,15 @@
 
 ## The problem it solves
 
-Every time Claude Code encounters a gem it hasn't seen in the current context, it
-re-reads the README, scans examples, and figures out the API. That costs tokens
-and time — and the result evaporates when the conversation ends.
+Every time an AI coding assistant encounters a gem it hasn't seen in the current
+context, it re-reads the README, scans examples, and figures out the API. That
+costs tokens and time — and the result evaporates when the conversation ends.
 
 `gem-skill` runs that pipeline once, offline, and stores the output as a
-`SKILL.md` in `~/.gem/skills`. Projects symlink to the cached version, so Claude
-has accurate, version-specific knowledge about each gem without repeating the
-ingestion work.
+`SKILL.md` in `~/.gem/skills`. Projects symlink to the cached version, so your
+assistant has accurate, version-specific knowledge about each gem without
+repeating the ingestion work. `SKILL.md` is a shared format — Claude Code,
+OpenAI Codex, and other assistants all read it.
 
 ## How the cache is laid out
 
@@ -38,7 +40,8 @@ ingestion work.
         └── metadata.json
 ```
 
-Each project's `.claude/skills/` holds symlinks that point into this cache:
+Each project's `.claude/skills/` directory (Claude Code's convention) holds
+symlinks that point into this cache:
 
 ```
 your-app/.claude/skills/
@@ -47,6 +50,29 @@ your-app/.claude/skills/
 
 Two projects that pin different versions of the same gem each get the right
 skill; the underlying content is generated once and shared.
+
+### Using the cache with other assistants
+
+The `~/.gem/skills` cache is assistant-neutral — `SKILL.md` is a shared format.
+By default `bundle skill` links skills into `.claude/skills/`, which Claude Code
+reads automatically. Other assistants discover skills in their own roots; for
+example, OpenAI Codex looks in `~/.codex/skills` and the vendor-neutral
+`~/.agents/skills` (and project-local `.agents/` / `.codex/`).
+
+To make `bundle skill` link into a different project directory, set
+`GEMSKILL_PROJECT_DIR`:
+
+```bash
+export GEMSKILL_PROJECT_DIR=".agents"   # Codex project root
+bundle skill install                    # symlinks now land in .agents/
+```
+
+> **Availability ≠ activation.** Claude Code treats every `SKILL.md` under
+> `.claude/skills/` as active automatically. Some assistants (e.g. Codex) only
+> activate a skill if it's in the session's available-skills list or you point
+> at it explicitly — so linking makes a skill *available*, not necessarily
+> *active*. See
+> [Using with other assistants](https://madbomber.github.io/gem-skill/skill-files/#using-with-other-assistants).
 
 ## Installation
 
@@ -82,7 +108,8 @@ Two environment variables control `gem-skill`'s behaviour:
 
 | Variable | Default | Description |
 |---|---|---|
-| `GEMSKILL_DIR` | `~/.gem/skills` | Root directory for the skill cache |
+| `GEMSKILL_DIR` | `~/.gem/skills` | Root directory for the global skill cache |
+| `GEMSKILL_PROJECT_DIR` | `.claude/skills` | Project-relative directory where `bundle skill` writes symlinks |
 | `GEMSKILL_MODEL` | `gpt-5.5` | LLM model used when generating skills |
 
 ```bash
@@ -91,6 +118,9 @@ export GEMSKILL_DIR="/Volumes/shared/gem-skills"
 
 # Switch the default model to Claude
 export GEMSKILL_MODEL="claude-sonnet-4-6"
+
+# Codex users: link skills into a Codex project root instead of .claude/skills
+export GEMSKILL_PROJECT_DIR=".agents"   # or ".codex"
 ```
 
 The `--model` flag on any command overrides `GEMSKILL_MODEL` for that
