@@ -742,6 +742,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frontmatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontmatter
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -843,6 +860,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frontmatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontmatter
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -949,31 +983,50 @@ such as Claude Code and OpenAI Codex read it automatically when it is present in
 the skills directory they look in (Claude Code uses <code>.claude/skills/</code>; see
 <a href="#using-with-other-assistants">Using the cache with other assistants</a>).</p>
 <h2 id="format">Format<a class="headerlink" href="#format" title="Permanent link">&para;</a></h2>
-<p>Every generated skill starts with a top-level heading identifying the gem and
-version, then covers seven sections:</p>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gh"># faraday v2.14.3</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gu">## Overview</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>What the gem does and when to reach for it.
+<p>Every generated skill begins with <strong>YAML frontmatter</strong> — the <code>name</code> and
+<code>description</code> that make it discoverable as an Agent Skill — followed by a
+top-level heading and seven sections:</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>---
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>name: faraday
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gu">description: &quot;HTTP client library for Ruby with pluggable adapters and middleware; use when making HTTP requests... (faraday v2.14.3)&quot;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gu">---</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gu">## Installation</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>Exact Gemfile/gemspec lines and any required post-install steps.
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="gu">## Core API</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>Key classes, methods, and options with real method signatures and return values.
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="gu">## Common Patterns</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>The 3–5 most frequent real-world usage patterns with working code examples.
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="gu">## Gotchas &amp; Edge Cases</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>Surprising defaults, version-specific behavior, thread safety, encoding issues.
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="gu">## Configuration</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>Initializer patterns, environment variables, defaults worth knowing.
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="gu">## Testing</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>How to test code that uses this gem: mocks, fakes, fixtures, VCR patterns.
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gh"># faraday v2.14.3</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="gu">## Overview</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>What the gem does and when to reach for it.
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="gu">## Installation</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>Exact Gemfile/gemspec lines and any required post-install steps.
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="gu">## Core API</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>Key classes, methods, and options with real method signatures and return values.
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="gu">## Common Patterns</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>The 3–5 most frequent real-world usage patterns with working code examples.
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="gu">## Gotchas &amp; Edge Cases</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>Surprising defaults, version-specific behavior, thread safety, encoding issues.
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="gu">## Configuration</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>Initializer patterns, environment variables, defaults worth knowing.
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="gu">## Testing</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>How to test code that uses this gem: mocks, fakes, fixtures, VCR patterns.
 </span></code></pre></div>
+<h3 id="frontmatter">Frontmatter<a class="headerlink" href="#frontmatter" title="Permanent link">&para;</a></h3>
+<p>The frontmatter is what registers the file as a skill — both Claude Code and
+OpenAI Codex require it, and the <code>description</code> is the text loaded into the
+assistant's context to decide <em>when</em> the skill applies. gem-skill generates it
+deterministically:</p>
+<ul>
+<li><strong><code>name</code></strong> — the gem name normalized to hyphen-case (lowercase letters,
+  digits, hyphens). For example <code>ruby_llm</code> becomes <code>ruby-llm</code>, since underscores
+  aren't allowed in skill names.</li>
+<li><strong><code>description</code></strong> — a one-line, trigger-oriented summary derived from the
+  Overview, with the version appended, sanitized to satisfy both assistants
+  (single line, no angle brackets).</li>
+</ul>
 <h2 id="what-an-assistant-does-with-it">What an assistant does with it<a class="headerlink" href="#what-an-assistant-does-with-it" title="Permanent link">&para;</a></h2>
 <p>When an assistant opens a project whose skills directory contains <code>SKILL.md</code>
 files, it reads every one it finds (Claude Code, for instance, reads everything

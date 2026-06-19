@@ -1186,11 +1186,24 @@ applied. Verified versions are flagged with a green checkmark in
 </span></code></pre></div>
 <hr />
 <h3 id="gem-skill-setup"><code>gem skill setup</code><a class="headerlink" href="#gem-skill-setup" title="Permanent link">&para;</a></h3>
-<p>Register gem-skill as a Bundler plugin (run once after <code>gem install gem-skill</code>).</p>
+<p>Run once after <code>gem install gem-skill</code>.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>setup
 </span></code></pre></div>
-<p>This enables <code>bundle skill</code> in any project on the machine. See
-<a href="../../installation/">Installation</a> for details.</p>
+<p>It does two things:</p>
+<ol>
+<li><strong>Registers gem-skill as a Bundler plugin</strong> so <code>bundle skill</code> works in any
+   project on the machine.</li>
+<li><strong>Installs the <code>ruby-gem-skills</code> router skill</strong> into the default skill root of
+   each detected assistant — <code>~/.claude/skills</code> (Claude Code), <code>~/.codex/skills</code>
+   and <code>~/.agents/skills</code> (Codex). A root is only written if its assistant home
+   (<code>~/.claude</code>, <code>~/.codex</code>, <code>~/.agents</code>) already exists.</li>
+</ol>
+<p>The router skill matters because cached gem skills live in <code>~/.gem/skills</code>, a
+directory assistants don't scan by default. This small always-on skill triggers
+when you work with a Ruby gem and tells the assistant how to find and read that
+gem's cached <code>SKILL.md</code> (resolving the version from <code>Gemfile.lock</code> or the
+installed gem). Re-run <code>gem skill setup</code> after upgrading gem-skill to refresh the
+copy. See <a href="../../installation/">Installation</a> for details.</p>
 <hr />
 <h3 id="gem-skill-list"><code>gem skill list</code><a class="headerlink" href="#gem-skill-list" title="Permanent link">&para;</a></h3>
 <p>Show all skills currently in the global cache. A green checkmark (<code>✓</code>) appears
