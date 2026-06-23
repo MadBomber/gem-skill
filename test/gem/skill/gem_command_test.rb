@@ -132,6 +132,19 @@ class GemCommandTest < Minitest::Test
     assert_equal "claude-haiku-4-5", captured[:model]
   end
 
+  def test_install_passes_max_tokens_to_generator
+    set_args("my_gem")
+    set_option(:max_tokens, 65_536)
+    captured = {}
+    gen_obj  = simple_generator
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
+        @cmd.send(:cmd_install)
+      end
+    end
+    assert_equal 65_536, captured[:max_tokens]
+  end
+
   def test_install_rescues_gem_skill_error_and_reports_via_alert
     set_args("my_gem")
     @cmd.stub(:resolve_installed_version, "1.0.0") do

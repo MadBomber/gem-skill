@@ -20,6 +20,7 @@ gem skill install GEM_NAME [GEM_NAME ...]
 | `--force`, `-f` | Regenerate even if a skill is already cached |
 | `--verify` | After generating, verify the skill's code against the gem's actual source and fix mismatches |
 | `--model MODEL`, `-m MODEL` | LLM model to use (overrides `GEMSKILL_MODEL`) |
+| `--max-tokens TOKENS` | Max output tokens for this run (overrides `GEMSKIL_MAX_TOKENS`; default: 32767) |
 | `--version`, `-v` | Print the installed gem-skill version and exit |
 
 **Examples:**
@@ -36,6 +37,9 @@ gem skill install rails --force --model claude-opus-4-8
 
 # Generate, then verify the result against the gem's source code
 gem skill install tty-spinner --verify
+
+# Raise the token cap to avoid truncated output
+gem skill install rails --max-tokens 65536
 ```
 
 If a gem is not installed locally, gem-skill will install it automatically

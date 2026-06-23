@@ -57,12 +57,13 @@ module Gem::Skill
       %<sources>s
     PROMPT
 
-    attr_reader :gem_name, :version, :model
+    attr_reader :gem_name, :version, :model, :max_tokens
 
-    def initialize(gem_name, version, model: DEFAULT_MODEL)
-      @gem_name = gem_name
-      @version  = version
-      @model    = model
+    def initialize(gem_name, version, model: DEFAULT_MODEL, max_tokens: MAX_TOKENS)
+      @gem_name   = gem_name
+      @version    = version
+      @model      = model
+      @max_tokens = max_tokens
     end
 
     # Generate and cache a SKILL.md. Returns the skill content string.
@@ -113,7 +114,14 @@ module Gem::Skill
     end
 
     def build_chat
-      RubyLLM.chat(model: model, max_tokens: MAX_TOKENS).with_instructions(SYSTEM_INSTRUCTIONS)
+      RubyLLM.chat(model: model)
+              .with_params(max_tokens_param => @max_tokens)
+              .with_instructions(SYSTEM_INSTRUCTIONS)
+    end
+
+    def max_tokens_param
+      info = RubyLLM.models.find(model)
+      info&.provider == "openai" ? :max_completion_tokens : :max_tokens
     end
 
     def format_prompt(sources)

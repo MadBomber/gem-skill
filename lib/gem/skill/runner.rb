@@ -17,14 +17,14 @@ module Gem::Skill
 
     # Generate + cache + link one skill, optionally verifying it against source.
     # Returns a Runner::Result.
-    def self.install_skill(gem_name, version, spinner, force:, model:, verify: false)
+    def self.install_skill(gem_name, version, spinner, force:, model:, verify: false, max_tokens: Generator::MAX_TOKENS)
       if Cache.cached?(gem_name, version) && !force
         Linker.link(gem_name, version)
         content = Cache.read(gem_name, version)
         return finalize(gem_name, version, content, spinner, model: model, verify: verify, status: "already cached")
       end
 
-      content = Generator.new(gem_name, version, model: model).generate(force: force)
+      content = Generator.new(gem_name, version, model: model, max_tokens: max_tokens).generate(force: force)
       Linker.link(gem_name, version)
       finalize(gem_name, version, content, spinner, model: model, verify: verify, status: "done")
     rescue => e

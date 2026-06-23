@@ -77,6 +77,7 @@ class GeneratorTest < Minitest::Test
 
   def test_generate_converts_ruby_llm_error_to_gem_skill_error
     fake_chat = Object.new
+    fake_chat.define_singleton_method(:with_params)       { |**| self }
     fake_chat.define_singleton_method(:with_instructions) { |_| self }
     fake_chat.define_singleton_method(:ask) { |_| raise RubyLLM::UnauthorizedError, "Invalid API key" }
 
@@ -135,6 +136,27 @@ class GeneratorTest < Minitest::Test
     assert_equal "claude-haiku-4-5", captured_model
   end
 
+  def test_custom_max_tokens_passed_via_with_params
+    captured_params = {}
+    fake_chat       = Object.new
+    fake_chat.define_singleton_method(:with_params)       { |**p| captured_params.merge!(p); self }
+    fake_chat.define_singleton_method(:with_instructions) { |_| self }
+    fake_chat.define_singleton_method(:ask)               { |_| FakeResponse.new(FAKE_SKILL) }
+
+    Gem::Skill::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
+      RubyLLM.stub(:chat, fake_chat) do
+        Gem::Skill::Generator.new(@gem_name, @version, max_tokens: 99_999).generate
+      end
+    end
+
+    assert_includes captured_params.values, 99_999
+  end
+
+  def test_default_max_tokens_equals_constant
+    gen = Gem::Skill::Generator.new(@gem_name, @version)
+    assert_equal Gem::Skill::Generator::MAX_TOKENS, gen.max_tokens
+  end
+
   private
 
   def with_stubs(sources:, skill:)
@@ -154,6 +176,7 @@ class GeneratorTest < Minitest::Test
 
   def responding_chat(content)
     chat = Object.new
+    chat.define_singleton_method(:with_params)       { |**| self }
     chat.define_singleton_method(:with_instructions) { |_| self }
     chat.define_singleton_method(:ask) { |_| FakeResponse.new(content) }
     chat
@@ -161,6 +184,7 @@ class GeneratorTest < Minitest::Test
 
   def streaming_chat(chunks)
     chat = Object.new
+    chat.define_singleton_method(:with_params)       { |**| self }
     chat.define_singleton_method(:with_instructions) { |_| self }
     chat.define_singleton_method(:ask) do |_, &blk|
       chunks.each { |c| blk&.call(FakeResponse.new(c)) }

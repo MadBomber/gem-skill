@@ -43,11 +43,12 @@ module Gem::Skill
         return
       end
 
-      force   = opts[:force]
-      verify  = opts[:verify]
-      model   = opts[:model] || Generator::DEFAULT_MODEL
-      errors  = []
-      results = []
+      force      = opts[:force]
+      verify     = opts[:verify]
+      model      = opts[:model] || Generator::DEFAULT_MODEL
+      max_tokens = opts[:max_tokens] || Generator::MAX_TOKENS
+      errors     = []
+      results    = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Installing skills (#{model})",
@@ -61,7 +62,7 @@ module Gem::Skill
           sp = multi.register("  [:spinner] :title")
           sp.update(title: "#{gem_name} #{version}")
           barrier.async do
-            result = install_one(gem_name, version, sp, force: force, model: model, verify: verify)
+            result = install_one(gem_name, version, sp, force: force, model: model, verify: verify, max_tokens: max_tokens)
             results << result
             errors << "#{gem_name} #{version}: #{result.error}" if result.error
           end
@@ -79,11 +80,12 @@ module Gem::Skill
     def self.refresh(opts = {})
       gems   = Lockfile.gems
       linked  = Linker.linked_gems.to_h { |e| [e[:gem_name], e[:version]] }
-      force   = opts[:force]
-      verify  = opts[:verify]
-      model   = opts[:model] || Generator::DEFAULT_MODEL
-      errors  = []
-      results = []
+      force      = opts[:force]
+      verify     = opts[:verify]
+      model      = opts[:model] || Generator::DEFAULT_MODEL
+      max_tokens = opts[:max_tokens] || Generator::MAX_TOKENS
+      errors     = []
+      results    = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Refreshing skills (#{model})",
@@ -102,7 +104,7 @@ module Gem::Skill
               sp.success("up to date")
               Runner::Result.success
             else
-              install_one(gem_name, version, sp, force: force, model: model, verify: verify)
+              install_one(gem_name, version, sp, force: force, model: model, verify: verify, max_tokens: max_tokens)
             end
             results << result
             errors << "#{gem_name} #{version}: #{result.error}" if result.error
@@ -139,9 +141,9 @@ module Gem::Skill
 
     # --- private ---
 
-    def self.install_one(gem_name, version, spinner, force:, model:, verify: false)
+    def self.install_one(gem_name, version, spinner, force:, model:, verify: false, max_tokens: Generator::MAX_TOKENS)
       spinner.auto_spin
-      Runner.install_skill(gem_name, version, spinner, force: force, model: model, verify: verify)
+      Runner.install_skill(gem_name, version, spinner, force: force, model: model, verify: verify, max_tokens: max_tokens)
     end
     private_class_method :install_one
 
@@ -178,6 +180,8 @@ module Gem::Skill
         when "--version", "-v"   then opts[:version] = true
         when /\A--model(?:=(.+))?\z/
           opts[:model] = $1 || args[args.index(arg) + 1]
+        when /\A--max-tokens(?:=(.+))?\z/
+          opts[:max_tokens] = ($1 || args[args.index(arg) + 1]).to_i
         else
           remaining << arg unless opts[:model].nil? && arg !~ /\A--/
           remaining << arg if arg !~ /\A--/
@@ -198,10 +202,11 @@ module Gem::Skill
           list      Show skills linked in this project
 
         Options:
-          --force         Regenerate even if already cached
-          --verify        Verify generated skills against gem source and fix mismatches
-          --model MODEL   LLM model to use (default: #{Generator::DEFAULT_MODEL})
-          --version, -v   Print gem-skill version and exit
+          --force                Regenerate even if already cached
+          --verify               Verify generated skills against gem source and fix mismatches
+          --model MODEL          LLM model to use (default: #{Generator::DEFAULT_MODEL})
+          --max-tokens TOKENS    Max output tokens (overrides GEMSKIL_MAX_TOKENS; default: #{Generator::MAX_TOKENS})
+          --version, -v          Print gem-skill version and exit
 
         Env:
           GEMSKILL_PROJECT_DIR   Project dir for symlinks (default: .claude/skills)

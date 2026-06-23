@@ -40,7 +40,13 @@ class BundlerCommandTest < Minitest::Test
     opts, rest = call_parse_options(%w[install])
     refute opts[:force]
     assert_nil opts[:model]
+    assert_nil opts[:max_tokens]
     assert_equal %w[install], rest
+  end
+
+  def test_parse_options_max_tokens_flag
+    opts, _rest = call_parse_options(%w[install --max-tokens 65536])
+    assert_equal 65_536, opts[:max_tokens]
   end
 
   # --- install ---
@@ -123,6 +129,32 @@ class BundlerCommandTest < Minitest::Test
       end
     end
     assert_equal "claude-haiku-4-5", captured[:model]
+  end
+
+  def test_install_passes_max_tokens_to_generator
+    captured = {}
+    gen_obj  = fake_gen([], "my_gem")
+    stub_lockfile({ "my_gem" => "1.0.0" }) do
+      stub_linker do
+        Gem::Skill::Generator.stub(:new, ->(*args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
+          Gem::Skill::BundlerCommand.install(max_tokens: 65_536)
+        end
+      end
+    end
+    assert_equal 65_536, captured[:max_tokens]
+  end
+
+  def test_refresh_passes_max_tokens_to_generator
+    captured = {}
+    gen_obj  = fake_gen([], "my_gem")
+    stub_lockfile({ "my_gem" => "1.0.0" }) do
+      stub_linker(linked: {}) do
+        Gem::Skill::Generator.stub(:new, ->(*args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
+          Gem::Skill::BundlerCommand.refresh(max_tokens: 65_536)
+        end
+      end
+    end
+    assert_equal 65_536, captured[:max_tokens]
   end
 
   # --- refresh ---
