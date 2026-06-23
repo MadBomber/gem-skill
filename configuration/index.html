@@ -579,6 +579,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gemskil_max_tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GEMSKIL_MAX_TOKENS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gemskill_model" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -900,6 +911,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gemskil_max_tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GEMSKIL_MAX_TOKENS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gemskill_model" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1106,6 +1128,27 @@ assistants (e.g. Codex) may require the skill to be in the session's
 available-skills list or referenced explicitly. See
 <a href="../skill-files/#using-with-other-assistants">Using with other assistants</a>.</p>
 </div>
+<h3 id="gemskil_max_tokens"><code>GEMSKIL_MAX_TOKENS</code><a class="headerlink" href="#gemskil_max_tokens" title="Permanent link">&para;</a></h3>
+<p>Controls the maximum number of output tokens the LLM may generate for each skill file.
+Increase this if generated <code>SKILL.md</code> files are being truncated.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default</strong></td>
+<td><code>32767</code></td>
+</tr>
+<tr>
+<td><strong>Example</strong></td>
+<td><code>export GEMSKIL_MAX_TOKENS=65536</code></td>
+</tr>
+</tbody>
+</table>
 <h3 id="gemskill_model"><code>GEMSKILL_MODEL</code><a class="headerlink" href="#gemskill_model" title="Permanent link">&para;</a></h3>
 <p>Controls which LLM model is used when generating skills.</p>
 <table>
