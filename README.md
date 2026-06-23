@@ -104,13 +104,21 @@ export GEMINI_API_KEY="..."      # or Gemini
 
 ## Configuration
 
-Two environment variables control `gem-skill`'s behaviour:
+All environment variables and their defaults:
 
 | Variable | Default | Description |
 |---|---|---|
 | `GEMSKILL_DIR` | `~/.gem/skills` | Root directory for the global skill cache |
 | `GEMSKILL_PROJECT_DIR` | `.claude/skills` | Project-relative directory where `bundle skill` writes symlinks |
 | `GEMSKILL_MODEL` | `gpt-5.5` | LLM model used when generating skills |
+| `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated skill file |
+| `ANTHROPIC_API_KEY` | _(none)_ | API key for Anthropic / Claude models |
+| `OPENAI_API_KEY` | _(none)_ | API key for OpenAI / GPT models |
+| `GEMINI_API_KEY` | _(none)_ | API key for Google Gemini models |
+| `MISTRAL_API_KEY` | _(none)_ | API key for Mistral models |
+| `DEEPSEEK_API_KEY` | _(none)_ | API key for DeepSeek models |
+| `OPENROUTER_API_KEY` | _(none)_ | API key for OpenRouter |
+| `XAI_API_KEY` | _(none)_ | API key for xAI (Grok) models |
 
 ```bash
 # Store skills on a shared drive accessible to all projects
@@ -121,6 +129,9 @@ export GEMSKILL_MODEL="claude-sonnet-4-6"
 
 # Codex users: link skills into a Codex project root instead of .claude/skills
 export GEMSKILL_PROJECT_DIR=".agents"   # or ".codex"
+
+# Raise the output token cap if generated skill files are being truncated
+export GEMSKIL_MAX_TOKENS=65536
 ```
 
 The `--model` flag on any command overrides `GEMSKILL_MODEL` for that

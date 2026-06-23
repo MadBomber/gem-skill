@@ -74,6 +74,16 @@ A blank or unset value falls back to the `.claude/skills` default.
     available-skills list or referenced explicitly. See
     [Using with other assistants](skill-files.md#using-with-other-assistants).
 
+### `GEMSKIL_MAX_TOKENS`
+
+Controls the maximum number of output tokens the LLM may generate for each skill file.
+Increase this if generated `SKILL.md` files are being truncated.
+
+| | |
+|---|---|
+| **Default** | `32767` |
+| **Example** | `export GEMSKIL_MAX_TOKENS=65536` |
+
 ### `GEMSKILL_MODEL`
 
 Controls which LLM model is used when generating skills.

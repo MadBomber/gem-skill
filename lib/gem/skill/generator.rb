@@ -5,7 +5,8 @@ require "ruby_llm"
 module Gem::Skill
   # Drives the LLM pipeline: fetches docs, generates a SKILL.md, caches it.
   class Generator
-    DEFAULT_MODEL = ENV.fetch("GEMSKILL_MODEL", "gpt-5.5")
+    DEFAULT_MODEL  = ENV.fetch("GEMSKILL_MODEL", "gpt-5.5")
+    MAX_TOKENS     = ENV.fetch("GEMSKIL_MAX_TOKENS", 32_767).to_i
     MAX_SOURCE_CHARS = 60_000  # guard against enormous READMEs blowing the context window
 
     SYSTEM_INSTRUCTIONS = <<~SYSTEM
@@ -112,7 +113,7 @@ module Gem::Skill
     end
 
     def build_chat
-      RubyLLM.chat(model: model).with_instructions(SYSTEM_INSTRUCTIONS)
+      RubyLLM.chat(model: model, max_tokens: MAX_TOKENS).with_instructions(SYSTEM_INSTRUCTIONS)
     end
 
     def format_prompt(sources)
