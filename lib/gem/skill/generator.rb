@@ -103,12 +103,18 @@ module Gem::Skill
       strip_wrapper_fence(content)
     end
 
-    # Removes a leading ```markdown (or ```) fence and its closing ```.
-    # Belt-and-suspenders: the prompt instructs the model not to wrap,
-    # but some models do it anyway.
+    # Removes a ```markdown (or ```) fence that wraps the ENTIRE document.
+    # Belt-and-suspenders: the prompt instructs the model not to wrap, but some
+    # models do it anyway. The trailing ``` is only stripped when a matching
+    # opening wrapper fence was present — otherwise a skill that legitimately
+    # ends with a code block would lose its closing fence and leave the block
+    # open.
     def strip_wrapper_fence(content)
-      content
-        .sub(/\A\s*```(?:markdown)?\s*\n/, "")
+      stripped = content.strip
+      return stripped unless stripped.match?(/\A```(?:markdown)?\s*\n/)
+
+      stripped
+        .sub(/\A```(?:markdown)?\s*\n/, "")
         .sub(/\n```\s*\z/, "")
         .strip
     end

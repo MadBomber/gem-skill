@@ -122,6 +122,24 @@ class GeneratorTest < Minitest::Test
     assert_equal clean, gen.send(:strip_wrapper_fence, clean)
   end
 
+  # Regression: unwrapped content that legitimately ENDS with a closed code
+  # block must keep its closing fence. Previously the trailing ``` was stripped
+  # unconditionally, leaving the final code block open at end-of-file.
+  def test_strip_wrapper_fence_preserves_trailing_code_block_when_unwrapped
+    gen = Gem::Skill::Generator.new(@gem_name, @version)
+    content = "## Testing\n\n```ruby\ntest \"works\" do\n  assert true\nend\n```"
+    assert_equal content, gen.send(:strip_wrapper_fence, content)
+  end
+
+  # A real wrapper (```markdown ... ```) around content that itself ends with a
+  # code block: only the outer wrapper fences come off, the inner block stays.
+  def test_strip_wrapper_fence_unwraps_outer_but_keeps_inner_block
+    gen = Gem::Skill::Generator.new(@gem_name, @version)
+    wrapped = "```markdown\n## Testing\n\n```ruby\nassert true\n```\n```"
+    expected = "## Testing\n\n```ruby\nassert true\n```"
+    assert_equal expected, gen.send(:strip_wrapper_fence, wrapped)
+  end
+
   def test_custom_model_passed_to_ruby_llm
     captured_model = nil
     fake_chat      = responding_chat(FAKE_SKILL)
