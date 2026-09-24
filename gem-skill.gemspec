@@ -67,7 +67,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "async",       "~> 2.0"
-  spec.add_dependency "json", "< 3.0"
   spec.add_dependency "ruby_llm",    "~> 2.0"
   spec.add_dependency "ruby_llm-providers-apfel"
   spec.add_dependency "ruby_llm-providers-lms"

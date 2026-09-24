@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
+# Provider plugin gems self-register with RubyLLM only when required; without
+# these, "lms/..." and "apfel/..." models are unreachable.
+require "ruby_llm/providers/lms"
+require "ruby_llm/providers/apfel"
 
 module Gem::Skill
   # Drives the LLM pipeline: fetches docs, generates a SKILL.md, caches it.
@@ -64,6 +68,7 @@ module Gem::Skill
       @gem_name    = gem_name
       @version     = version
       @model       = model
+      @model_id, @provider = Gem::Skill.parse_model(model)
       @max_tokens  = max_tokens
       @temperature = temperature
     end
@@ -122,17 +127,15 @@ module Gem::Skill
     end
 
     def build_chat
-      chat = RubyLLM.chat(model: model).with_params(max_tokens_param => @max_tokens)
+      # with_max_output_tokens (ruby_llm >= 2.0) maps to the right request
+      # parameter per provider (max_tokens vs max_completion_tokens).
+      chat = RubyLLM.chat(model: @model_id, provider: @provider).with_max_output_tokens(@max_tokens)
       chat = chat.with_temperature(@temperature) if temperature_supported?
       chat.with_instructions(SYSTEM_INSTRUCTIONS)
     end
 
     def model_info
-      @model_info ||= RubyLLM.models.find(model)
-    end
-
-    def max_tokens_param
-      model_info&.provider == "openai" ? :max_completion_tokens : :max_tokens
+      @model_info ||= RubyLLM.models.find(@model_id, provider: @provider)
     end
 
     # Reasoning models (e.g. gpt-5.5) reject a temperature parameter outright.

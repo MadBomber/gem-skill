@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
+require "ruby_llm/providers/lms"
+require "ruby_llm/providers/apfel"
 
 module Gem::Skill
   # Second-pass quality gate for a generated SKILL.md.
@@ -100,7 +102,8 @@ module Gem::Skill
     private
 
     def build_chat
-      RubyLLM.chat(model: model).with_instructions(SYSTEM_INSTRUCTIONS)
+      model_id, provider = Gem::Skill.parse_model(model)
+      RubyLLM.chat(model: model_id, provider: provider).with_instructions(SYSTEM_INSTRUCTIONS)
     end
 
     def format_prompt(skill_content, source)

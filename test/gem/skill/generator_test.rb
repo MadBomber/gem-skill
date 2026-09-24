@@ -77,7 +77,7 @@ class GeneratorTest < Minitest::Test
 
   def test_generate_converts_ruby_llm_error_to_gem_skill_error
     fake_chat = Object.new
-    fake_chat.define_singleton_method(:with_params)       { |**| self }
+    fake_chat.define_singleton_method(:with_max_output_tokens) { |_| self }
     fake_chat.define_singleton_method(:with_instructions) { |_| self }
     fake_chat.define_singleton_method(:ask) { |_| raise RubyLLM::UnauthorizedError, "Invalid API key" }
 
@@ -154,10 +154,10 @@ class GeneratorTest < Minitest::Test
     assert_equal "claude-haiku-4-5", captured_model
   end
 
-  def test_custom_max_tokens_passed_via_with_params
-    captured_params = {}
+  def test_custom_max_tokens_passed_via_with_max_output_tokens
+    captured_tokens = nil
     fake_chat       = Object.new
-    fake_chat.define_singleton_method(:with_params)       { |**p| captured_params.merge!(p); self }
+    fake_chat.define_singleton_method(:with_max_output_tokens) { |t| captured_tokens = t; self }
     fake_chat.define_singleton_method(:with_instructions) { |_| self }
     fake_chat.define_singleton_method(:ask)               { |_| FakeResponse.new(FAKE_SKILL) }
 
@@ -167,7 +167,7 @@ class GeneratorTest < Minitest::Test
       end
     end
 
-    assert_includes captured_params.values, 99_999
+    assert_equal 99_999, captured_tokens
   end
 
   def test_default_max_tokens_equals_constant
@@ -229,7 +229,7 @@ class GeneratorTest < Minitest::Test
 
   def responding_chat(content)
     chat = Object.new
-    chat.define_singleton_method(:with_params)       { |**| self }
+    chat.define_singleton_method(:with_max_output_tokens) { |_| self }
     chat.define_singleton_method(:with_temperature)  { |_| self }
     chat.define_singleton_method(:with_instructions) { |_| self }
     chat.define_singleton_method(:ask) { |_| FakeResponse.new(content) }
@@ -238,7 +238,7 @@ class GeneratorTest < Minitest::Test
 
   def streaming_chat(chunks)
     chat = Object.new
-    chat.define_singleton_method(:with_params)       { |**| self }
+    chat.define_singleton_method(:with_max_output_tokens) { |_| self }
     chat.define_singleton_method(:with_temperature)  { |_| self }
     chat.define_singleton_method(:with_instructions) { |_| self }
     chat.define_singleton_method(:ask) do |_, &blk|

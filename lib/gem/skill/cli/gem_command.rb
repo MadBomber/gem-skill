@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
 require "rubygems/command"
+# gem/skill must be required first: activating the gem-skill spec resolves
+# json to < 3 (ruby_llm's constraint). A bare `require "json"` before that
+# activates the newest installed json and makes the activation raise
+# Gem::ConflictError, which RubyGems swallows — leaving `gem skill` unregistered.
+require "gem/skill"
 require "async"
 require "fileutils"
 require "json"
 require "tty-spinner"
-require "gem/skill"
 
 # Registered as `gem skill` via lib/rubygems_plugin.rb.
 # Manages the global ~/.gem/skills cache.

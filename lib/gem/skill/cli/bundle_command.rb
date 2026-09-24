@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
+# gem/skill first — see gem_command.rb: activation must resolve json < 3
+# before a bare `require "json"` can activate a newer version.
+require "gem/skill"
 require "async"
 require "fileutils"
 require "json"
 require "tty-spinner"
-require "gem/skill"
 
 module Gem::Skill
   # Handles `bundle skill SUBCOMMAND` via Bundler's plugin API (plugins.rb).
