@@ -25,7 +25,12 @@ module Gem::Skill
         return finalize(gem_name, version, content, spinner, model: model, verify: verify, status: "already cached")
       end
 
-      content = Generator.new(gem_name, version, model: model, max_tokens: max_tokens, temperature: temperature).generate(force: force)
+      # Stream and discard chunks: a non-streaming request sends nothing over
+      # the socket until generation completes, so a slow local model (reasoning
+      # models especially) trips Net::ReadTimeout regardless of how high the
+      # timeout is set. Streaming keeps bytes flowing between chunks.
+      generator = Generator.new(gem_name, version, model: model, max_tokens: max_tokens, temperature: temperature)
+      content   = generator.generate(force: force) { |_chunk| }
       Linker.link(gem_name, version)
       finalize(gem_name, version, content, spinner, model: model, verify: verify, status: "done")
     rescue => e
