@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
 
   spec.homepage = "https://github.com/madbomber/gem-skill"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2.0"
+  spec.required_ruby_version = ">= 3.4"
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
@@ -67,6 +67,9 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "async",       "~> 2.0"
-  spec.add_dependency "ruby_llm",    "~> 1.0"
+  spec.add_dependency "json", "< 3.0"
+  spec.add_dependency "ruby_llm",    "~> 2.0"
+  spec.add_dependency "ruby_llm-providers-apfel"
+  spec.add_dependency "ruby_llm-providers-lms"
   spec.add_dependency "tty-spinner"
 end
