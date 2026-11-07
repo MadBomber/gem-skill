@@ -130,24 +130,20 @@ module Gem::Skill
       # with_max_output_tokens (ruby_llm >= 2.0) maps to the right request
       # parameter per provider (max_tokens vs max_completion_tokens).
       chat = RubyLLM.chat(model: @model_id, provider: @provider).with_max_output_tokens(@max_tokens)
-      chat = chat.with_temperature(@temperature) if temperature_supported?
+      chat = chat.with_temperature(@temperature) if temperature_supported?(chat.model)
       chat.with_instructions(SYSTEM_INSTRUCTIONS)
-    end
-
-    def model_info
-      @model_info ||= RubyLLM.models.find(@model_id, provider: @provider)
     end
 
     # Reasoning models (e.g. gpt-5.5) reject a temperature parameter outright.
     # Only set it for models whose metadata doesn't explicitly mark temperature
-    # unsupported; treat absent metadata as supported. That includes models
-    # missing from the static registry, as local lms/ and apfel/ models are.
-    def temperature_supported?
+    # unsupported; treat absent metadata as supported. Takes the model the chat
+    # already resolved: for local providers (lms/, apfel/) RubyLLM falls back to
+    # a default model with no capability metadata when the id isn't in its
+    # registry, where a second registry lookup would raise ModelNotFoundError.
+    def temperature_supported?(resolved_model)
       return false if @temperature.nil?
 
-      model_info.metadata.fetch(:temperature, true) != false
-    rescue RubyLLM::ModelNotFoundError
-      true
+      resolved_model.metadata.fetch(:temperature, true) != false
     end
 
     def format_prompt(sources)
