@@ -103,7 +103,8 @@ export GEMINI_API_KEY="..."      # or Gemini
 ```
 
 Or run a local model (LM Studio or Apfel) with no API key by prefixing the
-model with `lms/` or `apfel/`; see
+model with `lms/` or `apfel/`. Apfel's 4,096-token context fits only very
+small gems; see
 [Local models](https://madbomber.github.io/gem-skill/configuration/#local-models):
 
 ```bash
@@ -121,7 +122,7 @@ All environment variables and their defaults:
 | `GEMSKILL_MODEL` | `gpt-5.5` | LLM model used when generating skills |
 | `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated skill file |
 | `GEMSKILL_TEMPERATURE` | `0.2` | Sampling temperature (skipped for reasoning models that reject it) |
-| `GEMSKILL_REQUEST_TIMEOUT` | `900` | HTTP read timeout in seconds for each LLM request |
+| `GEMSKILL_REQUEST_TIMEOUT` | `900` | HTTP timeout in seconds for each LLM request |
 | `ANTHROPIC_API_KEY` | _(none)_ | API key for Anthropic / Claude models |
 | `OPENAI_API_KEY` | _(none)_ | API key for OpenAI / GPT models |
 | `GEMINI_API_KEY` | _(none)_ | API key for Google Gemini models |

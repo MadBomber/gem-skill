@@ -45,9 +45,10 @@ first segment is not a provider name is passed to RubyLLM unchanged.
 
 !!! warning "Apfel's context window is small"
     Apple's on-device model has a combined input and output context of 4,096
-    tokens. A skill prompt carries up to 60,000 characters of README, so most
-    gems won't fit and the output will be cut short or rejected. LM Studio,
-    with a model that has a large context window, is the better local choice.
+    tokens. A skill prompt carries the gem's README and other docs (and
+    `--verify` adds its source code), so most gems won't fit and the output
+    will be cut short or rejected. LM Studio, with a model that has a large
+    context window, is the better local choice.
 
 Local models can be slow to produce a full skill; see
 [`GEMSKILL_REQUEST_TIMEOUT`](#gemskill_request_timeout).
@@ -142,19 +143,20 @@ invocation only. Use a `lms/` or `apfel/` prefix to pick a
 
 ### `GEMSKILL_REQUEST_TIMEOUT`
 
-HTTP read timeout, in seconds, for each LLM request.
+HTTP timeout, in seconds, for each LLM request.
 
 | | |
 |---|---|
 | **Default** | `900` |
 | **Example** | `export GEMSKILL_REQUEST_TIMEOUT=1800` |
 
-This is how long gem-skill waits for the server to send data. Generation is
-streamed, so it only has to cover the wait for the next chunk, mostly the time
-before the first one. The `--verify` pass is not streamed, so with `--verify`
-the model must return the whole checked skill within this time. RubyLLM's own
-default (300 seconds) suits hosted APIs; gem-skill raises it for slow local
-models. Increase it if a local model times out, especially with `--verify`.
+RubyLLM's own default (300 seconds) suits hosted APIs; gem-skill raises it
+because a local model can be slow to respond. `gem skill install` and
+`bundle skill` stream generation, so the timeout mostly covers the wait before
+output starts. `--verify` and `gem install --with-skill` wait for the whole
+response, so they need the most headroom. RubyLLM retries a timed-out request
+(3 retries by default), so a stuck request can take several times this long
+to fail.
 
 ## Recommended shell configuration
 
