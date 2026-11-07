@@ -94,7 +94,7 @@ plugin "gem-skill"
 ## Requirements
 
 `gem-skill` uses [RubyLLM](https://github.com/crmne/ruby_llm) to generate
-skills. Configure at least one provider API key before running:
+skills. Configure a provider API key or a local model before running:
 
 ```bash
 export OPENAI_API_KEY="..."      # default model: gpt-5.5

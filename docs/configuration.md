@@ -39,7 +39,7 @@ export GEMSKILL_MODEL="lms/qwen/qwen3-4b"   # or make it the default
 ```
 
 The prefix is split off only when the text before the first `/` names a
-provider registered with RubyLLM (`lms`, `apfel`, `openai`, `ollama`, and so
+provider registered with RubyLLM (`lms`, `apfel`, `openai`, `anthropic`, and so
 on), so `lms/qwen/qwen3-4b` sends `qwen/qwen3-4b` to LM Studio. A model whose
 first segment is not a provider name is passed to RubyLLM unchanged.
 
@@ -157,9 +157,9 @@ RubyLLM's own default (300 seconds) suits hosted APIs; gem-skill raises it
 because a local model can be slow to respond. `gem skill install` and
 `bundle skill` stream generation, so the timeout mostly covers the wait before
 output starts. `--verify`, `gem skill verify` and `gem install --with-skill`
-wait for the whole response, so they need the most headroom. RubyLLM retries a timed-out request
-(3 retries by default), so a stuck request can take several times this long
-to fail.
+wait for the whole response, so they need the most headroom. RubyLLM retries
+a request that times out before any output arrives (3 retries by default), so
+a stuck request can take several times this long to fail.
 
 ## Recommended shell configuration
 
