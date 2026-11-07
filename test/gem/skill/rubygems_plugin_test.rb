@@ -2,6 +2,7 @@
 
 require "test_helper"
 require "tmpdir"
+require "open3"
 
 require "rubygems/command_manager"
 require "rubygems/commands/install_command"
@@ -35,6 +36,18 @@ class RubygemsPluginTest < Minitest::Test
     cmd = Gem::Commands::InstallCommand.new
     cmd.handle_options(%w[my_gem])
     refute cmd.options[:generate_skill]
+  end
+
+  # --- loading ---
+
+  # Bundler loads RubyGems plugins without rubygems/command_manager, so the
+  # plugin must require it itself. Run in a fresh process: this file already
+  # required it above.
+  def test_plugin_loads_without_command_manager_preloaded
+    lib = File.expand_path("../../../lib", __dir__)
+    script = 'require "rubygems_plugin"; exit Gem::CommandManager.instance.command_names.include?("skill")'
+    output, status = Open3.capture2e(RbConfig.ruby, "-I", lib, "-e", script)
+    assert status.success?, output
   end
 
   # --- post_install hook: collection ---
