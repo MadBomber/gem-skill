@@ -45,10 +45,9 @@ class RubygemsPluginTest < Minitest::Test
   # required it above.
   def test_plugin_loads_without_command_manager_preloaded
     lib = File.expand_path("../../../lib", __dir__)
-    script = 'require "rubygems_plugin"; print Gem::CommandManager.instance.command_names.include?("skill")'
+    script = 'require "rubygems_plugin"; exit Gem::CommandManager.instance.command_names.include?("skill")'
     output, status = Open3.capture2e(RbConfig.ruby, "-I", lib, "-e", script)
     assert status.success?, output
-    assert_equal "true", output.lines.last
   end
 
   # --- post_install hook: collection ---
