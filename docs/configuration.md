@@ -49,8 +49,9 @@ first segment is not a provider name is passed to RubyLLM unchanged.
     `--verify` adds its source code), so most gems won't fit and the output
     will be cut short or rejected. If you try it anyway, lower
     [`GEMSKIL_MAX_TOKENS`](#gemskil_max_tokens) from its 32767 default to fit
-    the window. LM Studio, with a model that has a large context window, is
-    the better local choice.
+    the window, and skip `--verify`: the verify pass has no output cap.
+    LM Studio, with a model that has a large context window, is the better
+    local choice.
 
 Local models can be slow to produce a full skill; see
 [`GEMSKILL_REQUEST_TIMEOUT`](#gemskill_request_timeout).
@@ -155,8 +156,8 @@ HTTP timeout, in seconds, for each LLM request.
 RubyLLM's own default (300 seconds) suits hosted APIs; gem-skill raises it
 because a local model can be slow to respond. `gem skill install` and
 `bundle skill` stream generation, so the timeout mostly covers the wait before
-output starts. `--verify` and `gem install --with-skill` wait for the whole
-response, so they need the most headroom. RubyLLM retries a timed-out request
+output starts. `--verify`, `gem skill verify` and `gem install --with-skill`
+wait for the whole response, so they need the most headroom. RubyLLM retries a timed-out request
 (3 retries by default), so a stuck request can take several times this long
 to fail.
 
