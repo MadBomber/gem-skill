@@ -24,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `README.md` Configuration section now lists all environment variables (gem-skill-specific and provider API keys) in a single reference table.
 - `docs/configuration.md` documents the new `GEMSKIL_MAX_TOKENS` and `GEMSKILL_TEMPERATURE` variables alongside the existing `GEMSKILL_MODEL` entry.
 - `docs/commands/gem-skill.md` and `docs/commands/bundle-skill.md` option tables updated with `--max-tokens` and `--temperature`.
+- Documented local-model support (`lms/` and `apfel/` model prefixes, `LMS_API_BASE`, `LMS_API_KEY`, `APFEL_API_BASE`, `APFEL_API_KEY`) and `GEMSKILL_REQUEST_TIMEOUT` in the README and `docs/configuration.md`, and corrected the Ruby requirement in `docs/installation.md` to >= 3.4.
 
 ## [0.2.0] - 2026-06-19
 

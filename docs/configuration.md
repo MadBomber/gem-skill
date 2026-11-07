@@ -23,6 +23,38 @@ Other supported providers:
 | `OPENROUTER_API_KEY`   | OpenRouter   |
 | `XAI_API_KEY`          | xAI (Grok)   |
 
+## Local models
+
+gem-skill can generate skills with a model running on your own machine, with
+no API key and no per-token cost. Prefix the model name with the provider:
+
+| Prefix   | Provider | Default server |
+|----------|----------|----------------|
+| `lms/`   | [LM Studio](https://lmstudio.ai) | `http://localhost:1234/v1` |
+| `apfel/` | [Apfel](https://apfel.franzai.com/) (Apple's on-device model; Apple Silicon, macOS 26+) | `http://127.0.0.1:11434/v1` |
+
+```bash
+gem skill install faraday --model lms/qwen/qwen3-4b
+export GEMSKILL_MODEL="lms/qwen/qwen3-4b"   # or make it the default
+```
+
+Only the first segment is treated as a provider, so model ids that contain a
+`/` (like `qwen/qwen3-4b`) pass through intact. A model with no recognized
+prefix is resolved by RubyLLM as usual.
+
+Set these only when your server isn't at the default address or requires a
+token:
+
+| Environment variable | Purpose |
+|----------------------|---------|
+| `LMS_API_BASE`       | LM Studio server URL |
+| `LMS_API_KEY`        | LM Studio API token |
+| `APFEL_API_BASE`     | Apfel server URL |
+| `APFEL_API_KEY`      | Token, if Apfel was started with `apfel --serve --token` |
+
+Local models can be slow to produce a full skill; see
+[`GEMSKILL_REQUEST_TIMEOUT`](#gemskill_request_timeout).
+
 ## gem-skill environment variables
 
 ### `GEMSKILL_DIR`
@@ -108,7 +140,21 @@ Controls which LLM model is used when generating skills.
 | **Example** | `export GEMSKILL_MODEL="claude-opus-4-8"` |
 
 The `--model` flag on any command overrides `GEMSKILL_MODEL` for that single
-invocation only.
+invocation only. Use a `lms/` or `apfel/` prefix to pick a
+[local model](#local-models).
+
+### `GEMSKILL_REQUEST_TIMEOUT`
+
+HTTP read timeout, in seconds, for each LLM request.
+
+| | |
+|---|---|
+| **Default** | `900` |
+| **Example** | `export GEMSKILL_REQUEST_TIMEOUT=1800` |
+
+RubyLLM's own default (300 seconds) suits hosted APIs. A local model can take
+longer than that to write one skill, so gem-skill raises it. Increase it further
+if a slow local model times out.
 
 ## Recommended shell configuration
 

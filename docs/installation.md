@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- Ruby >= 3.2.0
-- At least one LLM provider API key (see [Configuration](configuration.md))
+- Ruby >= 3.4
+- At least one LLM provider API key, or a local model server (see [Configuration](configuration.md))
 
 ## Install the gem
 

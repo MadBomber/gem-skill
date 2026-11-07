@@ -102,6 +102,15 @@ export ANTHROPIC_API_KEY="..."   # or use Claude
 export GEMINI_API_KEY="..."      # or Gemini
 ```
 
+Or run a local model with no API key. Prefix the model with a provider
+name to pick the provider: `lms/` for [LM Studio](https://lmstudio.ai)
+or `apfel/` for Apple's on-device model served by
+[Apfel](https://apfel.franzai.com/):
+
+```bash
+gem skill install faraday --model lms/qwen/qwen3-4b
+```
+
 ## Configuration
 
 All environment variables and their defaults:
@@ -113,6 +122,7 @@ All environment variables and their defaults:
 | `GEMSKILL_MODEL` | `gpt-5.5` | LLM model used when generating skills |
 | `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated skill file |
 | `GEMSKILL_TEMPERATURE` | `0.2` | Sampling temperature (skipped for reasoning models that reject it) |
+| `GEMSKILL_REQUEST_TIMEOUT` | `900` | HTTP read timeout in seconds for each LLM request |
 | `ANTHROPIC_API_KEY` | _(none)_ | API key for Anthropic / Claude models |
 | `OPENAI_API_KEY` | _(none)_ | API key for OpenAI / GPT models |
 | `GEMINI_API_KEY` | _(none)_ | API key for Google Gemini models |
@@ -120,6 +130,10 @@ All environment variables and their defaults:
 | `DEEPSEEK_API_KEY` | _(none)_ | API key for DeepSeek models |
 | `OPENROUTER_API_KEY` | _(none)_ | API key for OpenRouter |
 | `XAI_API_KEY` | _(none)_ | API key for xAI (Grok) models |
+| `LMS_API_BASE` | `http://localhost:1234/v1` | LM Studio server URL for `lms/...` models |
+| `LMS_API_KEY` | _(none)_ | LM Studio API token, only if the server requires one |
+| `APFEL_API_BASE` | `http://127.0.0.1:11434/v1` | Apfel server URL for `apfel/...` models |
+| `APFEL_API_KEY` | _(none)_ | Apfel token, only if started with `apfel --serve --token` |
 
 ```bash
 # Store skills on a shared drive accessible to all projects
