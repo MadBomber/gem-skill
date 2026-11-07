@@ -13,7 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `--temperature TEMP` CLI flag on `gem skill install` — overrides `GEMSKILL_TEMPERATURE` for a single invocation.
 
 ### Fixed
-- Loading the RubyGems plugin no longer raises `uninitialized constant Gem::CommandManager` when Bundler loads it (for example during `bundle install`). `lib/rubygems_plugin.rb` now requires `rubygems/command_manager` itself.
+- `bundle install` no longer prints `Error loading RubyGems plugin ... uninitialized constant Gem::CommandManager (NameError)` for gem-skill. Bundler loads RubyGems plugins without the command manager, so `lib/rubygems_plugin.rb` now requires `rubygems/command_manager` itself.
 - `lms/` and `apfel/` models that are not in RubyLLM's static model registry (every `apfel/` model and most `lms/` models) no longer fail with `RubyLLM::ModelNotFoundError` before any request is sent. A model with no registry entry is treated as supporting temperature.
 - `strip_wrapper_fence` no longer deletes the closing ``` of a skill that legitimately ends with a code block. The trailing wrapper fence is now stripped only when a matching opening wrapper fence (```` ```markdown ```` / ```` ``` ```` at the very start) was present. Previously the final ``` was removed unconditionally, leaving the last code block open at end-of-file — which looked like the LLM truncating its output but was entirely a post-processing bug. Regenerate affected skills with `gem skill install GEM --force`.
 - `docs/installation.md` now gives the Ruby requirement as >= 3.4, matching the gemspec (it said >= 3.2.0).
