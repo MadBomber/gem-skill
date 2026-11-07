@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Bundler loads RubyGems plugins without the command manager loaded.
+require "rubygems/command_manager"
 require_relative "gem/skill/cli/gem_command"
 Gem::CommandManager.instance.register_command :skill
 
