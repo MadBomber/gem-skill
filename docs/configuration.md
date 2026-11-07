@@ -28,10 +28,10 @@ Other supported providers:
 gem-skill can generate skills with a model running on your own machine, with
 no API key and no per-token cost. Prefix the model name with the provider:
 
-| Prefix   | Provider | Default server |
-|----------|----------|----------------|
-| `lms/`   | [LM Studio](https://lmstudio.ai) | `http://localhost:1234/v1` |
-| `apfel/` | [Apfel](https://apfel.franzai.com/) (Apple's on-device model; Apple Silicon, macOS 26+) | `http://127.0.0.1:11434/v1` |
+| Prefix   | Provider | Server URL (default) | Token, only if the server requires one |
+|----------|----------|----------------------|----------------------------------------|
+| `lms/`   | [LM Studio](https://lmstudio.ai) | `LMS_API_BASE` (`http://localhost:1234/v1`) | `LMS_API_KEY` |
+| `apfel/` | [Apfel](https://apfel.franzai.com/) (Apple's on-device model; Apple Silicon, macOS 26+) | `APFEL_API_BASE` (`http://127.0.0.1:11434/v1`) | `APFEL_API_KEY` (set with `apfel --serve --token`) |
 
 ```bash
 gem skill install faraday --model lms/qwen/qwen3-4b
@@ -41,16 +41,6 @@ export GEMSKILL_MODEL="lms/qwen/qwen3-4b"   # or make it the default
 Only the first segment is treated as a provider, so model ids that contain a
 `/` (like `qwen/qwen3-4b`) pass through intact. A model with no recognized
 prefix is resolved by RubyLLM as usual.
-
-Set these only when your server isn't at the default address or requires a
-token:
-
-| Environment variable | Purpose |
-|----------------------|---------|
-| `LMS_API_BASE`       | LM Studio server URL |
-| `LMS_API_KEY`        | LM Studio API token |
-| `APFEL_API_BASE`     | Apfel server URL |
-| `APFEL_API_KEY`      | Token, if Apfel was started with `apfel --serve --token` |
 
 Local models can be slow to produce a full skill; see
 [`GEMSKILL_REQUEST_TIMEOUT`](#gemskill_request_timeout).

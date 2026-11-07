@@ -102,10 +102,9 @@ export ANTHROPIC_API_KEY="..."   # or use Claude
 export GEMINI_API_KEY="..."      # or Gemini
 ```
 
-Or run a local model with no API key. Prefix the model with a provider
-name to pick the provider: `lms/` for [LM Studio](https://lmstudio.ai)
-or `apfel/` for Apple's on-device model served by
-[Apfel](https://apfel.franzai.com/):
+Or run a local model (LM Studio or Apfel) with no API key by prefixing the
+model with `lms/` or `apfel/`; see
+[Local models](https://madbomber.github.io/gem-skill/configuration/#local-models):
 
 ```bash
 gem skill install faraday --model lms/qwen/qwen3-4b

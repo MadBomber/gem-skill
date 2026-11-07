@@ -15,6 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - `lms/` and `apfel/` models that are not in RubyLLM's static model registry (every `apfel/` model and most `lms/` models) no longer fail with `RubyLLM::ModelNotFoundError` before any request is sent. A model with no registry entry is treated as supporting temperature.
 - `strip_wrapper_fence` no longer deletes the closing ``` of a skill that legitimately ends with a code block. The trailing wrapper fence is now stripped only when a matching opening wrapper fence (```` ```markdown ```` / ```` ``` ```` at the very start) was present. Previously the final ``` was removed unconditionally, leaving the last code block open at end-of-file — which looked like the LLM truncating its output but was entirely a post-processing bug. Regenerate affected skills with `gem skill install GEM --force`.
+- `docs/installation.md` now gives the Ruby requirement as >= 3.4, matching the gemspec (it said >= 3.2.0).
 
 ### Changed
 - `Generator::MAX_TOKENS` constant reads from `GEMSKIL_MAX_TOKENS` and is passed via `with_params` to every `RubyLLM.chat` call, covering both streaming and non-streaming paths.
@@ -24,7 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `README.md` Configuration section now lists all environment variables (gem-skill-specific and provider API keys) in a single reference table.
 - `docs/configuration.md` documents the new `GEMSKIL_MAX_TOKENS` and `GEMSKILL_TEMPERATURE` variables alongside the existing `GEMSKILL_MODEL` entry.
 - `docs/commands/gem-skill.md` and `docs/commands/bundle-skill.md` option tables updated with `--max-tokens` and `--temperature`.
-- Documented local-model support (`lms/` and `apfel/` model prefixes, `LMS_API_BASE`, `LMS_API_KEY`, `APFEL_API_BASE`, `APFEL_API_KEY`) and `GEMSKILL_REQUEST_TIMEOUT` in the README and `docs/configuration.md`, and corrected the Ruby requirement in `docs/installation.md` to >= 3.4.
+- Documented local-model support (`lms/` and `apfel/` model prefixes) and `GEMSKILL_REQUEST_TIMEOUT` in the README and `docs/configuration.md`.
 
 ## [0.2.0] - 2026-06-19
 

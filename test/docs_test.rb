@@ -8,9 +8,10 @@ class DocsTest < Minitest::Test
   ROOT = File.expand_path("..", __dir__)
 
   def test_every_env_var_is_documented
+    vars = env_vars_read_by_lib
     %w[README.md docs/configuration.md].each do |doc|
       text    = read(doc)
-      missing = env_vars_read_by_lib.reject { |var| text.include?("`#{var}`") }
+      missing = vars.reject { |var| text.include?("`#{var}`") }
 
       assert_empty missing, "#{doc} does not document: #{missing.join(', ')}"
     end
@@ -30,7 +31,7 @@ class DocsTest < Minitest::Test
 
   def env_vars_read_by_lib
     fetched = Dir["lib/**/*.rb", base: ROOT].flat_map do |file|
-      read(file).scan(/ENV\.fetch\("([A-Z0-9_]+)"/).flatten
+      read(file).scan(/ENV(?:\.fetch\(|\.key\?\(|\[)\s*["']([A-Z0-9_]+)["']/).flatten
     end
     (fetched + Gem::Skill::ENV_KEY_MAP.values).uniq.sort
   end
