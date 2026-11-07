@@ -217,6 +217,25 @@ class GeneratorTest < Minitest::Test
     end
   end
 
+  def test_temperature_supported_reads_resolved_model_metadata
+    gen = Gem::Skill::Generator.new(@gem_name, @version, temperature: 0.4)
+    assert gen.send(:temperature_supported?, FakeModel.new({}))
+    assert gen.send(:temperature_supported?, FakeModel.new({ temperature: true }))
+    refute gen.send(:temperature_supported?, FakeModel.new({ temperature: false }))
+  end
+
+  def test_temperature_not_supported_when_temperature_nil
+    gen = Gem::Skill::Generator.new(@gem_name, @version, temperature: nil)
+    refute gen.send(:temperature_supported?, FakeModel.new({ temperature: true }))
+  end
+
+  # The temperature tests above use fake metadata; pin the registry entries
+  # they stand in for, so a RubyLLM change to those flags is caught.
+  def test_registry_temperature_flags_match_fakes
+    assert_equal true,  RubyLLM.models.find("claude-haiku-4-5").metadata[:temperature]
+    assert_equal false, RubyLLM.models.find("gpt-5.5").metadata[:temperature]
+  end
+
   private
 
   def with_stubs(sources:, skill:)
