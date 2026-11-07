@@ -104,7 +104,7 @@ export GEMINI_API_KEY="..."      # or Gemini
 
 Or run a local model (LM Studio or Apfel) with no API key by prefixing the
 model with `lms/` or `apfel/`. Apfel's 4,096-token context fits only very
-small gems; see
+small gems, and only with a lower `GEMSKIL_MAX_TOKENS`; see
 [Local models](https://madbomber.github.io/gem-skill/configuration/#local-models):
 
 ```bash

@@ -3,7 +3,8 @@
 ## LLM provider API keys
 
 gem-skill uses [RubyLLM](https://github.com/crmne/ruby_llm) to generate skills.
-Set at least one provider API key before running any `install` command:
+Set at least one provider API key, or use a [local model](#local-models),
+before running any `install` command:
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."   # Claude models
