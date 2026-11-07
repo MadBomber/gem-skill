@@ -38,9 +38,16 @@ gem skill install faraday --model lms/qwen/qwen3-4b
 export GEMSKILL_MODEL="lms/qwen/qwen3-4b"   # or make it the default
 ```
 
-Only the first segment is treated as a provider, so model ids that contain a
-`/` (like `qwen/qwen3-4b`) pass through intact. A model with no recognized
-prefix is resolved by RubyLLM as usual.
+The prefix is split off only when the text before the first `/` names a
+provider registered with RubyLLM (`lms`, `apfel`, `openai`, `ollama`, and so
+on), so `lms/qwen/qwen3-4b` sends `qwen/qwen3-4b` to LM Studio. A model whose
+first segment is not a provider name is passed to RubyLLM unchanged.
+
+!!! warning "Apfel's context window is small"
+    Apple's on-device model has a combined input and output context of 4,096
+    tokens. A skill prompt carries up to 60,000 characters of README, so most
+    gems won't fit and the output will be cut short or rejected. LM Studio,
+    with a model that has a large context window, is the better local choice.
 
 Local models can be slow to produce a full skill; see
 [`GEMSKILL_REQUEST_TIMEOUT`](#gemskill_request_timeout).
@@ -142,9 +149,12 @@ HTTP read timeout, in seconds, for each LLM request.
 | **Default** | `900` |
 | **Example** | `export GEMSKILL_REQUEST_TIMEOUT=1800` |
 
-RubyLLM's own default (300 seconds) suits hosted APIs. A local model can take
-longer than that to write one skill, so gem-skill raises it. Increase it further
-if a slow local model times out.
+This is how long gem-skill waits for the server to send data. Generation is
+streamed, so it only has to cover the wait for the next chunk, mostly the time
+before the first one. The `--verify` pass is not streamed, so with `--verify`
+the model must return the whole checked skill within this time. RubyLLM's own
+default (300 seconds) suits hosted APIs; gem-skill raises it for slow local
+models. Increase it if a local model times out, especially with `--verify`.
 
 ## Recommended shell configuration
 

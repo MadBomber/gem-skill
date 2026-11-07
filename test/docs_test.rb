@@ -20,7 +20,7 @@ class DocsTest < Minitest::Test
   def test_installation_doc_matches_gemspec_ruby_floor
     floor = Gem::Specification.load(File.join(ROOT, "gem-skill.gemspec")).required_ruby_version.to_s
 
-    assert read("docs/installation.md").include?("Ruby #{floor}"), "docs/installation.md should say Ruby #{floor}"
+    assert_match(/Ruby #{Regexp.escape(floor)}(?![\d.])/, read("docs/installation.md"), "docs/installation.md should say Ruby #{floor}")
   end
 
   private
