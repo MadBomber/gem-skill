@@ -179,7 +179,8 @@ class GeneratorTest < Minitest::Test
 
   def test_temperature_applied_for_supporting_model
     captured_temp = nil
-    fake_chat     = responding_chat(FAKE_SKILL)
+    # claude models report temperature: true in their RubyLLM metadata
+    fake_chat     = responding_chat(FAKE_SKILL, metadata: { temperature: true })
     fake_chat.define_singleton_method(:with_temperature) { |t| captured_temp = t; self }
 
     Gem::Skill::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
@@ -244,11 +245,7 @@ class GeneratorTest < Minitest::Test
   end
 
   def streaming_chat(chunks)
-    chat = Object.new
-    chat.define_singleton_method(:model) { FakeModel.new({}) }
-    chat.define_singleton_method(:with_max_output_tokens) { |_| self }
-    chat.define_singleton_method(:with_temperature)  { |_| self }
-    chat.define_singleton_method(:with_instructions) { |_| self }
+    chat = responding_chat(nil)
     chat.define_singleton_method(:ask) do |_, &blk|
       chunks.each { |c| blk&.call(FakeResponse.new(c)) }
     end
