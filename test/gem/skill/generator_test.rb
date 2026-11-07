@@ -212,6 +212,9 @@ class GeneratorTest < Minitest::Test
   # raise, and with no metadata saying otherwise, temperature is applied.
   def test_build_chat_applies_temperature_for_model_missing_from_registry
     %w[lms/not-in-registry/model-7b apfel/apple-foundationmodel].each do |model|
+      model_id, provider = Gem::Skill.parse_model(model)
+      assert_raises(RubyLLM::ModelNotFoundError) { RubyLLM.models.find(model_id, provider:) }
+
       chat = Gem::Skill::Generator.new(@gem_name, @version, model:, temperature: 0.4).send(:build_chat)
       assert_equal 0.4, chat.temperature, "temperature should be applied for #{model}"
     end
@@ -253,7 +256,8 @@ class GeneratorTest < Minitest::Test
     ->(*) { fetcher }
   end
 
-  def responding_chat(content, metadata: {})
+  # Default metadata mirrors the default model, gpt-5.5, which rejects temperature.
+  def responding_chat(content, metadata: { temperature: false })
     chat = Object.new
     chat.define_singleton_method(:model) { FakeModel.new(metadata) }
     chat.define_singleton_method(:with_max_output_tokens) { |_| self }

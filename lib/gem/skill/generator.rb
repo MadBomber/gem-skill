@@ -138,7 +138,7 @@ module Gem::Skill
     # Only set it for models whose metadata doesn't explicitly mark temperature
     # unsupported; treat absent metadata as supported. Takes the model the chat
     # already resolved: for local providers (lms/, apfel/) RubyLLM falls back to
-    # a default model with no capability metadata when the id isn't in its
+    # a default model with no :temperature metadata when the id isn't in its
     # registry, where a second registry lookup would raise ModelNotFoundError.
     def temperature_supported?(resolved_model)
       return false if @temperature.nil?
