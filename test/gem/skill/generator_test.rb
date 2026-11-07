@@ -210,6 +210,25 @@ class GeneratorTest < Minitest::Test
     refute temperature_called, "temperature must not be set for a reasoning model"
   end
 
+  # Local providers (LM Studio, Apfel) serve models the static RubyLLM
+  # registry doesn't list. An unknown model must not block generation, and
+  # with no metadata saying otherwise, temperature is treated as supported.
+  def test_temperature_applied_for_model_missing_from_registry
+    %w[lms/not-in-registry/model-7b apfel/apple-foundationmodel].each do |model|
+      captured_temp = nil
+      fake_chat     = responding_chat(FAKE_SKILL)
+      fake_chat.define_singleton_method(:with_temperature) { |t| captured_temp = t; self }
+
+      Gem::Skill::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
+        RubyLLM.stub(:chat, fake_chat) do
+          Gem::Skill::Generator.new(@gem_name, @version, model:, temperature: 0.4).generate(force: true)
+        end
+      end
+
+      assert_equal 0.4, captured_temp, "temperature should be applied for #{model}"
+    end
+  end
+
   private
 
   def with_stubs(sources:, skill:)

@@ -140,11 +140,14 @@ module Gem::Skill
 
     # Reasoning models (e.g. gpt-5.5) reject a temperature parameter outright.
     # Only set it for models whose metadata doesn't explicitly mark temperature
-    # unsupported; treat absent metadata as supported.
+    # unsupported; treat absent metadata as supported. That includes models
+    # missing from the static registry, as local lms/ and apfel/ models are.
     def temperature_supported?
       return false if @temperature.nil?
 
       model_info.metadata.fetch(:temperature, true) != false
+    rescue RubyLLM::ModelNotFoundError
+      true
     end
 
     def format_prompt(sources)
