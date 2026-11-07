@@ -31,7 +31,7 @@ no API key and no per-token cost. Prefix the model name with the provider:
 | Prefix   | Provider | Server URL (default) | Token, only if the server requires one |
 |----------|----------|----------------------|----------------------------------------|
 | `lms/`   | [LM Studio](https://lmstudio.ai) | `LMS_API_BASE` (`http://localhost:1234/v1`) | `LMS_API_KEY` |
-| `apfel/` | [Apfel](https://apfel.franzai.com/) (Apple's on-device model; Apple Silicon, macOS 26+) | `APFEL_API_BASE` (`http://127.0.0.1:11434/v1`) | `APFEL_API_KEY` (set with `apfel --serve --token`) |
+| `apfel/` | [Apfel](https://apfel.franzai.com/) (Apple's on-device model; Apple Silicon, macOS 26+, Apple Intelligence enabled) | `APFEL_API_BASE` (`http://127.0.0.1:11434/v1`) | `APFEL_API_KEY` (set with `apfel --serve --token`) |
 
 ```bash
 gem skill install faraday --model lms/qwen/qwen3-4b
@@ -47,8 +47,10 @@ first segment is not a provider name is passed to RubyLLM unchanged.
     Apple's on-device model has a combined input and output context of 4,096
     tokens. A skill prompt carries the gem's README and other docs (and
     `--verify` adds its source code), so most gems won't fit and the output
-    will be cut short or rejected. LM Studio, with a model that has a large
-    context window, is the better local choice.
+    will be cut short or rejected. If you try it anyway, lower
+    [`GEMSKIL_MAX_TOKENS`](#gemskil_max_tokens) from its 32767 default to fit
+    the window. LM Studio, with a model that has a large context window, is
+    the better local choice.
 
 Local models can be slow to produce a full skill; see
 [`GEMSKILL_REQUEST_TIMEOUT`](#gemskill_request_timeout).
