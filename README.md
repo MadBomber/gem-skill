@@ -94,12 +94,21 @@ plugin "gem-skill"
 ## Requirements
 
 `gem-skill` uses [RubyLLM](https://github.com/crmne/ruby_llm) to generate
-skills. Configure at least one provider API key before running:
+skills. Configure a provider API key or a local model before running:
 
 ```bash
 export OPENAI_API_KEY="..."      # default model: gpt-5.5
 export ANTHROPIC_API_KEY="..."   # or use Claude
 export GEMINI_API_KEY="..."      # or Gemini
+```
+
+Or run a local model (LM Studio or Apfel) with no API key by prefixing the
+model with `lms/` or `apfel/`. Apfel's 4,096-token context fits only very
+small gems, and only with a lower `GEMSKIL_MAX_TOKENS`; see
+[Local models](https://madbomber.github.io/gem-skill/configuration/#local-models):
+
+```bash
+gem skill install faraday --model lms/qwen/qwen3-4b
 ```
 
 ## Configuration
@@ -113,6 +122,7 @@ All environment variables and their defaults:
 | `GEMSKILL_MODEL` | `gpt-5.5` | LLM model used when generating skills |
 | `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated skill file |
 | `GEMSKILL_TEMPERATURE` | `0.2` | Sampling temperature (skipped for reasoning models that reject it) |
+| `GEMSKILL_REQUEST_TIMEOUT` | `900` | HTTP timeout in seconds for each LLM request |
 | `ANTHROPIC_API_KEY` | _(none)_ | API key for Anthropic / Claude models |
 | `OPENAI_API_KEY` | _(none)_ | API key for OpenAI / GPT models |
 | `GEMINI_API_KEY` | _(none)_ | API key for Google Gemini models |
@@ -120,6 +130,10 @@ All environment variables and their defaults:
 | `DEEPSEEK_API_KEY` | _(none)_ | API key for DeepSeek models |
 | `OPENROUTER_API_KEY` | _(none)_ | API key for OpenRouter |
 | `XAI_API_KEY` | _(none)_ | API key for xAI (Grok) models |
+| `LMS_API_BASE` | `http://localhost:1234/v1` | LM Studio server URL for `lms/...` models |
+| `LMS_API_KEY` | _(none)_ | LM Studio API token, only if the server requires one |
+| `APFEL_API_BASE` | `http://127.0.0.1:11434/v1` | Apfel server URL for `apfel/...` models |
+| `APFEL_API_KEY` | _(none)_ | Apfel token, only if started with `apfel --serve --token` |
 
 ```bash
 # Store skills on a shared drive accessible to all projects

@@ -3,7 +3,8 @@
 ## LLM provider API keys
 
 gem-skill uses [RubyLLM](https://github.com/crmne/ruby_llm) to generate skills.
-Set at least one provider API key before running any `install` command:
+Set at least one provider API key, or use a [local model](#local-models),
+before running any `install` command:
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."   # Claude models
@@ -22,6 +23,39 @@ Other supported providers:
 | `DEEPSEEK_API_KEY`     | DeepSeek     |
 | `OPENROUTER_API_KEY`   | OpenRouter   |
 | `XAI_API_KEY`          | xAI (Grok)   |
+
+## Local models
+
+gem-skill can generate skills with a model running on your own machine, with
+no API key and no per-token cost. Prefix the model name with the provider:
+
+| Prefix   | Provider | Server URL (default) | Token, only if the server requires one |
+|----------|----------|----------------------|----------------------------------------|
+| `lms/`   | [LM Studio](https://lmstudio.ai) | `LMS_API_BASE` (`http://localhost:1234/v1`) | `LMS_API_KEY` |
+| `apfel/` | [Apfel](https://apfel.franzai.com/) (Apple's on-device model; Apple Silicon, macOS 26+, Apple Intelligence enabled) | `APFEL_API_BASE` (`http://127.0.0.1:11434/v1`) | `APFEL_API_KEY` (set with `apfel --serve --token`) |
+
+```bash
+gem skill install faraday --model lms/qwen/qwen3-4b
+export GEMSKILL_MODEL="lms/qwen/qwen3-4b"   # or make it the default
+```
+
+The prefix is split off only when the text before the first `/` names a
+provider registered with RubyLLM (`lms`, `apfel`, `openai`, `anthropic`, and so
+on), so `lms/qwen/qwen3-4b` sends `qwen/qwen3-4b` to LM Studio. A model whose
+first segment is not a provider name is passed to RubyLLM unchanged.
+
+!!! warning "Apfel's context window is small"
+    Apple's on-device model has a combined input and output context of 4,096
+    tokens. A skill prompt carries the gem's README and other docs (and
+    `--verify` adds its source code), so most gems won't fit and the output
+    will be cut short or rejected. If you try it anyway, lower
+    [`GEMSKIL_MAX_TOKENS`](#gemskil_max_tokens) from its 32767 default to fit
+    the window, and skip `--verify`: the verify pass has no output cap.
+    LM Studio, with a model that has a large context window, is the better
+    local choice.
+
+Local models can be slow to produce a full skill; see
+[`GEMSKILL_REQUEST_TIMEOUT`](#gemskill_request_timeout).
 
 ## gem-skill environment variables
 
@@ -108,7 +142,25 @@ Controls which LLM model is used when generating skills.
 | **Example** | `export GEMSKILL_MODEL="claude-opus-4-8"` |
 
 The `--model` flag on any command overrides `GEMSKILL_MODEL` for that single
-invocation only.
+invocation only. Use a `lms/` or `apfel/` prefix to pick a
+[local model](#local-models).
+
+### `GEMSKILL_REQUEST_TIMEOUT`
+
+HTTP timeout, in seconds, for each LLM request.
+
+| | |
+|---|---|
+| **Default** | `900` |
+| **Example** | `export GEMSKILL_REQUEST_TIMEOUT=1800` |
+
+RubyLLM's own default (300 seconds) suits hosted APIs; gem-skill raises it
+because a local model can be slow to respond. `gem skill install` and
+`bundle skill` stream generation, so the timeout mostly covers the wait before
+output starts. `--verify`, `gem skill verify` and `gem install --with-skill`
+wait for the whole response, so they need the most headroom. RubyLLM retries
+a request that times out before any output arrives (3 retries by default), so
+a stuck request can take several times this long to fail.
 
 ## Recommended shell configuration
 
