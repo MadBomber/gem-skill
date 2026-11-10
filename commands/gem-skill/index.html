@@ -1162,6 +1162,8 @@ If no source is available, the skill is left untouched.</p>
 </tr>
 </tbody>
 </table>
+<p>An error (<code>1</code>) takes precedence over corrections (<code>2</code>): if any gem errors while
+others were fixed, the command exits <code>1</code>.</p>
 <p>Either way, <code>metadata.json</code> gains a <code>verification</code> block recording that the gem's
 actual source was consulted, which files were examined, and — when fixes were
 applied — an array of structured, issue-ready corrections (affected symbol,
