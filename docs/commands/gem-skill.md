@@ -72,7 +72,7 @@ Either way, `metadata.json` gains a `verification` block recording that the gem'
 actual source was consulted, which files were examined, and — when fixes were
 applied — an array of structured, issue-ready corrections (affected symbol,
 source location, what the skill said vs. the truth, and the proving source
-snippet). See [Cache layout](cache.md#metadatajson) for the full schema.
+snippet). See [Cache layout](../cache.md#metadatajson) for the full schema.
 
 A verified skill is flagged with a green checkmark in
 [`gem skill list`](#gem-skill-list).
