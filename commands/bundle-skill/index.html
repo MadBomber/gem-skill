@@ -1056,7 +1056,7 @@ assistants read too — see <a href="../../skill-files/#using-with-other-assista
 </thead>
 <tbody>
 <tr>
-<td><code>--force</code></td>
+<td><code>--force</code>, <code>-f</code></td>
 <td>Regenerate even if skills are already cached</td>
 </tr>
 <tr>
@@ -1064,7 +1064,7 @@ assistants read too — see <a href="../../skill-files/#using-with-other-assista
 <td>Verify generated skills against each gem's source and fix mismatches (exit <code>2</code> if any fixes applied)</td>
 </tr>
 <tr>
-<td><code>--model MODEL</code></td>
+<td><code>--model MODEL</code>, <code>-m MODEL</code></td>
 <td>LLM model to use (overrides <code>GEMSKILL_MODEL</code>)</td>
 </tr>
 <tr>
@@ -1072,11 +1072,16 @@ assistants read too — see <a href="../../skill-files/#using-with-other-assista
 <td>Max output tokens per skill (overrides <code>GEMSKIL_MAX_TOKENS</code>; default: 32767)</td>
 </tr>
 <tr>
+<td><code>--temperature TEMP</code></td>
+<td>Sampling temperature; ignored by reasoning models (overrides <code>GEMSKILL_TEMPERATURE</code>; default: 0.2)</td>
+</tr>
+<tr>
 <td><code>--version</code>, <code>-v</code></td>
 <td>Print the installed gem-skill version and exit</td>
 </tr>
 </tbody>
 </table>
+<p>Flags may come before or after the subcommand (<code>bundle skill --model MODEL install</code> works too), and <code>--model=MODEL</code> style is accepted. An unknown or abbreviated flag, or a value flag with nothing after it, is an error.</p>
 <p><strong>Example:</strong></p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>your-project
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>bundle<span class="w"> </span>skill<span class="w"> </span>install
@@ -1117,16 +1122,20 @@ Code reads <code>.claude/skills/</code>; other assistants use their own roots).<
 </thead>
 <tbody>
 <tr>
-<td><code>--force</code></td>
+<td><code>--force</code>, <code>-f</code></td>
 <td>Regenerate all skills, even those already at the correct version</td>
 </tr>
 <tr>
-<td><code>--model MODEL</code></td>
+<td><code>--model MODEL</code>, <code>-m MODEL</code></td>
 <td>LLM model to use</td>
 </tr>
 <tr>
 <td><code>--max-tokens TOKENS</code></td>
 <td>Max output tokens per skill (overrides <code>GEMSKIL_MAX_TOKENS</code>; default: 32767)</td>
+</tr>
+<tr>
+<td><code>--temperature TEMP</code></td>
+<td>Sampling temperature; ignored by reasoning models (overrides <code>GEMSKILL_TEMPERATURE</code>; default: 0.2)</td>
 </tr>
 </tbody>
 </table>
