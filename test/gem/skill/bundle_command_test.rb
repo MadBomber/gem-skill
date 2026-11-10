@@ -49,6 +49,95 @@ class BundlerCommandTest < Minitest::Test
     assert_equal 65_536, opts[:max_tokens]
   end
 
+  def test_parse_options_consumes_value_flags_before_subcommand
+    opts, rest = call_parse_options(%w[--model gpt-x --max-tokens 100 install])
+    assert_equal "gpt-x", opts[:model]
+    assert_equal 100, opts[:max_tokens]
+    assert_equal %w[install], rest
+  end
+
+  def test_parse_options_consumes_value_flag_after_subcommand
+    opts, rest = call_parse_options(%w[install --model gpt-x])
+    assert_equal "gpt-x", opts[:model]
+    assert_equal %w[install], rest
+  end
+
+  def test_parse_options_accepts_equals_form
+    opts, rest = call_parse_options(%w[install --model=gpt-x --max-tokens=100 --temperature=0.7])
+    assert_equal({ model: "gpt-x", max_tokens: 100, temperature: 0.7 }, opts)
+    assert_equal %w[install], rest
+  end
+
+  def test_parse_options_temperature_flag
+    opts, rest = call_parse_options(%w[install --temperature 0.5])
+    assert_in_delta 0.5, opts[:temperature]
+    assert_equal %w[install], rest
+  end
+
+  def test_parse_options_rejects_unknown_flag
+    assert_raises(OptionParser::InvalidOption) { call_parse_options(%w[install --bogus]) }
+  end
+
+  def test_parse_options_rejects_non_numeric_max_tokens
+    assert_raises(OptionParser::InvalidArgument) { call_parse_options(%w[install --max-tokens lots]) }
+  end
+
+  def test_parse_options_rejects_abbreviated_flag
+    assert_raises(OptionParser::InvalidOption) { call_parse_options(%w[install --mod gpt-x]) }
+  end
+
+  def test_parse_options_rejects_non_decimal_max_tokens
+    assert_raises(OptionParser::InvalidArgument) { call_parse_options(%w[install --max-tokens 0x10]) }
+  end
+
+  def test_parse_options_short_flags_match_gem_skill
+    opts, rest = call_parse_options(%w[install -f -m gpt-x])
+    assert_equal({ force: true, model: "gpt-x" }, opts)
+    assert_equal %w[install], rest
+  end
+
+  def test_parse_options_permutes_even_when_posixly_correct
+    saved = ENV.fetch("POSIXLY_CORRECT", nil)
+    ENV["POSIXLY_CORRECT"] = "1"
+    opts, rest = call_parse_options(%w[install --model gpt-x])
+    assert_equal "gpt-x", opts[:model]
+    assert_equal %w[install], rest
+  ensure
+    ENV["POSIXLY_CORRECT"] = saved
+  end
+
+  def test_run_bad_option_exits_before_configuring_llm
+    Gem::Skill.stub(:configure_llm!, -> { flunk "configured LLM" }) do
+      assert_raises(SystemExit) { Gem::Skill::BundlerCommand.run(%w[install --bogus]) }
+    end
+  end
+
+  def test_run_reports_bad_option_and_exits
+    Gem::Skill.stub(:configure_llm!, nil) do
+      error = assert_raises(SystemExit) { Gem::Skill::BundlerCommand.run(%w[install --model]) }
+      assert_equal 1, error.status
+    end
+    assert_match "missing argument: --model", @errors.string
+  end
+
+  def test_run_help_flag_prints_usage_instead_of_running_subcommand
+    Gem::Skill.stub(:configure_llm!, -> { flunk "configured LLM" }) do
+      Gem::Skill::BundlerCommand.stub(:install, ->(*) { flunk "install ran" }) do
+        Gem::Skill::BundlerCommand.run(%w[install --help])
+      end
+    end
+    assert_match "Usage: bundle skill", @output.string
+  end
+
+  def test_run_with_model_before_subcommand_runs_subcommand
+    stub_linker(linked: {}) do
+      Gem::Skill.stub(:configure_llm!, nil) do
+        Gem::Skill::BundlerCommand.run(%w[--model gpt-x list])
+      end
+    end
+    assert_match "No skills linked", @output.string
+  end
+
   # --- install ---
 
   def test_install_skips_generation_when_already_cached
@@ -120,12 +209,9 @@ class BundlerCommandTest < Minitest::Test
 
   def test_install_passes_custom_model_to_generator
     captured = {}
-    gen_obj  = fake_gen([], "my_gem")
     stub_lockfile({ "my_gem" => "1.0.0" }) do
       stub_linker do
-        Gem::Skill::Generator.stub(:new, ->(*args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-          Gem::Skill::BundlerCommand.install(model: "claude-haiku-4-5")
-        end
+        capture_generator_kwargs(captured) { Gem::Skill::BundlerCommand.install(model: "claude-haiku-4-5") }
       end
     end
     assert_equal "claude-haiku-4-5", captured[:model]
@@ -133,25 +219,39 @@ class BundlerCommandTest < Minitest::Test
 
   def test_install_passes_max_tokens_to_generator
     captured = {}
-    gen_obj  = fake_gen([], "my_gem")
     stub_lockfile({ "my_gem" => "1.0.0" }) do
       stub_linker do
-        Gem::Skill::Generator.stub(:new, ->(*args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-          Gem::Skill::BundlerCommand.install(max_tokens: 65_536)
-        end
+        capture_generator_kwargs(captured) { Gem::Skill::BundlerCommand.install(max_tokens: 65_536) }
       end
     end
     assert_equal 65_536, captured[:max_tokens]
   end
 
-  def test_refresh_passes_max_tokens_to_generator
+  def test_install_passes_temperature_to_generator
     captured = {}
-    gen_obj  = fake_gen([], "my_gem")
+    stub_lockfile({ "my_gem" => "1.0.0" }) do
+      stub_linker do
+        capture_generator_kwargs(captured) { Gem::Skill::BundlerCommand.install(temperature: 0.7) }
+      end
+    end
+    assert_in_delta 0.7, captured[:temperature]
+  end
+
+  def test_refresh_passes_temperature_to_generator
+    captured = {}
     stub_lockfile({ "my_gem" => "1.0.0" }) do
       stub_linker(linked: {}) do
-        Gem::Skill::Generator.stub(:new, ->(*args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-          Gem::Skill::BundlerCommand.refresh(max_tokens: 65_536)
-        end
+        capture_generator_kwargs(captured) { Gem::Skill::BundlerCommand.refresh(temperature: 0.7) }
+      end
+    end
+    assert_in_delta 0.7, captured[:temperature]
+  end
+
+  def test_refresh_passes_max_tokens_to_generator
+    captured = {}
+    stub_lockfile({ "my_gem" => "1.0.0" }) do
+      stub_linker(linked: {}) do
+        capture_generator_kwargs(captured) { Gem::Skill::BundlerCommand.refresh(max_tokens: 65_536) }
       end
     end
     assert_equal 65_536, captured[:max_tokens]
@@ -237,6 +337,15 @@ class BundlerCommandTest < Minitest::Test
         end
       end
     end
+  end
+
+  def capture_generator_kwargs(captured, &)
+    gen_obj = fake_gen([], "my_gem")
+    capture = lambda do |*, **kwargs|
+      captured.merge!(kwargs)
+      gen_obj
+    end
+    Gem::Skill::Generator.stub(:new, capture, &)
   end
 
   def stub_generator(generated)
