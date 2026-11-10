@@ -59,6 +59,19 @@ class VerifierTest < Minitest::Test
     end
   end
 
+  def test_extract_skill_falls_back_when_end_marker_missing
+    # A truncated reply opens the skill but never closes it. Without the end
+    # marker we must fall back to the original rather than cache the partial tail.
+    truncated = "#{Gem::Skill::Verifier::BEGIN_MARK}\n# partial skill cut off mid-"
+    body = verifier.send(:extract_skill, truncated, ORIGINAL)
+    assert_equal ORIGINAL, body
+  end
+
+  def test_extract_skill_returns_body_when_both_markers_present
+    body = verifier.send(:extract_skill, wrap("# clean body"), ORIGINAL)
+    assert_equal "# clean body", body
+  end
+
   def test_wraps_ruby_llm_error
     stub_fetcher(source: SOURCE) do
       fake_chat = Object.new
