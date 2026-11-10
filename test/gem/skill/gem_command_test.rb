@@ -6,6 +6,7 @@ require "gem/skill/cli/gem_command"
 
 class GemCommandTest < Minitest::Test
   def setup
+    enter_temp_project
     @tmpdir = Dir.mktmpdir
     stub_cache_root(@tmpdir)
     @cmd    = Gem::Commands::SkillCommand.new
@@ -20,6 +21,8 @@ class GemCommandTest < Minitest::Test
     Gem.ui.instance_variable_set(:@errs, STDERR)
     FileUtils.rm_rf(@tmpdir)
     restore_cache_root
+  ensure
+    leave_temp_project
   end
 
   # --- execute dispatch ---
@@ -119,7 +122,7 @@ class GemCommandTest < Minitest::Test
     assert_match "Could not install", @errors.string
   end
 
-  def test_install_skips_generation_when_already_cached
+  def test_install_links_cached_gem_without_generating
     pre_cache("my_gem", "1.0.0")
     set_args("my_gem")
     generated = []
@@ -127,6 +130,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_empty generated
+    assert_linked "my_gem", "1.0.0"
   end
 
   def test_install_generates_and_links_uncached_gem
@@ -170,6 +174,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_includes generated, "my_gem"
+    assert_linked "my_gem", "1.0.0"
   end
 
   def test_install_passes_custom_model_to_generator
@@ -518,6 +523,29 @@ class GemCommandTest < Minitest::Test
       spinner.define_singleton_method(m) { |*| }
     end
     spinner
+  end
+
+  # Install links into Dir.pwd/.claude/skills; run each test from a throwaway
+  # project dir, with no GEMSKILL_PROJECT_DIR override, so tests never leave
+  # symlinks in the repo.
+  def enter_temp_project
+    @original_project_dir = ENV.delete("GEMSKILL_PROJECT_DIR")
+    @original_pwd = Dir.pwd
+    @project_root = File.realpath(Dir.mktmpdir)
+    Dir.chdir(@project_root)
+  end
+
+  def leave_temp_project
+    Dir.chdir(@original_pwd)
+    FileUtils.rm_rf(@project_root) if @project_root
+    ENV["GEMSKILL_PROJECT_DIR"] = @original_project_dir if @original_project_dir
+  end
+
+  # The install linked gem_name into the test's project dir, at the cached version.
+  def assert_linked(gem_name, version)
+    link = File.join(Gem::Skill::Linker.skills_dir(@project_root), gem_name)
+    assert File.symlink?(link), "expected #{link} to be a symlink"
+    assert_equal File.join(@tmpdir, gem_name, version), File.readlink(link)
   end
 
   def stub_linker
