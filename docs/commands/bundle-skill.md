@@ -43,11 +43,14 @@ bundle skill install [OPTIONS]
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Regenerate even if skills are already cached |
+| `--force`, `-f` | Regenerate even if skills are already cached |
 | `--verify` | Verify generated skills against each gem's source and fix mismatches (exit `2` if any fixes applied) |
-| `--model MODEL` | LLM model to use (overrides `GEMSKILL_MODEL`) |
+| `--model MODEL`, `-m MODEL` | LLM model to use (overrides `GEMSKILL_MODEL`) |
 | `--max-tokens TOKENS` | Max output tokens per skill (overrides `GEMSKIL_MAX_TOKENS`; default: 32767) |
+| `--temperature TEMP` | Sampling temperature; ignored by reasoning models (overrides `GEMSKILL_TEMPERATURE`; default: 0.2) |
 | `--version`, `-v` | Print the installed gem-skill version and exit |
+
+Flags may come before or after the subcommand (`bundle skill --model MODEL install` works too), and `--model=MODEL` style is accepted. An unknown or abbreviated flag, or a value flag with nothing after it, is an error.
 
 **Example:**
 
@@ -97,9 +100,10 @@ bundle skill refresh [OPTIONS]
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Regenerate all skills, even those already at the correct version |
-| `--model MODEL` | LLM model to use |
+| `--force`, `-f` | Regenerate all skills, even those already at the correct version |
+| `--model MODEL`, `-m MODEL` | LLM model to use |
 | `--max-tokens TOKENS` | Max output tokens per skill (overrides `GEMSKIL_MAX_TOKENS`; default: 32767) |
+| `--temperature TEMP` | Sampling temperature; ignored by reasoning models (overrides `GEMSKILL_TEMPERATURE`; default: 0.2) |
 
 `refresh` skips gems that are already linked at the correct version (shows
 `up to date`), regenerates gems whose version changed, and removes dead symlinks
