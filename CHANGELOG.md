@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- Validate gem names and versions before building cache paths. A gem name must be a plain RubyGems name and a version must parse as a `Gem::Version`; malformed values from a `Gemfile.lock` are dropped by `Lockfile.parse`, and the `Cache`/`Linker` path builders raise `Gem::Skill::Error` for them.
+
 ### Added
 - Bundled `ruby-gem-skills` "router" skill (shipped at the gem root) that teaches assistants how to find cached gem skills in `~/.gem/skills` — a directory neither Claude Code nor Codex scans by default. `gem skill setup` now also copies this skill into each detected assistant's default root (`~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`), creating none that don't already exist. `Gem::Skill::ROUTER_SKILL_NAME` / `ROUTER_SKILL_DIR` locate the bundled template.
 - `GEMSKIL_MAX_TOKENS` environment variable (default `32767`) — caps the number of output tokens the LLM may generate per skill file. Raise this if generated `SKILL.md` files are being truncated.

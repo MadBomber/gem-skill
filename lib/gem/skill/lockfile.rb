@@ -14,7 +14,8 @@ module Gem::Skill
       specs  = parse_specs(content)
       direct = parse_direct_names(content) + parse_path_dep_names(content)
       direct.uniq.each_with_object({}) do |name, hash|
-        hash[name] = specs[name] if specs.key?(name)
+        version = specs[name]
+        hash[name] = version if version && Validation.valid_gem_name?(name) && Validation.valid_version?(version)
       end
     end
 

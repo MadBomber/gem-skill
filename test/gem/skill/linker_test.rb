@@ -94,6 +94,18 @@ class LinkerTest < Minitest::Test
     end
   end
 
+  def test_link_rejects_a_name_that_is_not_a_plain_gem_name
+    assert_raises(Gem::Skill::Error) do
+      Gem::Skill::Linker.link("foo/bar", @version, @project_dir)
+    end
+  end
+
+  def test_unlink_rejects_a_name_that_is_not_a_plain_gem_name
+    assert_raises(Gem::Skill::Error) do
+      Gem::Skill::Linker.unlink("foo/bar", @project_dir)
+    end
+  end
+
   private
 
   def with_env(key, value)

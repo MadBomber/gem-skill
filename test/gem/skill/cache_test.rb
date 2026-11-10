@@ -76,6 +76,32 @@ class CacheTest < Minitest::Test
     end
   end
 
+  def test_skill_path_rejects_a_name_that_is_not_a_plain_gem_name
+    assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.skill_path("foo/bar", "1.0.0") }
+  end
+
+  def test_skill_path_rejects_a_non_version_string
+    assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.skill_path("my_gem", "not a version") }
+  end
+
+  def test_purge_rejects_an_invalid_name
+    with_tmp_cache do
+      assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.purge("foo/bar", "1.0.0") }
+    end
+  end
+
+  def test_store_rejects_an_invalid_name
+    with_tmp_cache do
+      assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.store("foo/bar", "1.0.0", "content") }
+    end
+  end
+
+  def test_versions_rejects_an_invalid_name
+    with_tmp_cache do
+      assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.versions("foo/bar") }
+    end
+  end
+
   private
 
   def with_tmp_cache
