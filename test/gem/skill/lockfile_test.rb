@@ -51,4 +51,27 @@ class LockfileTest < Minitest::Test
     assert gems.key?("minitest")
     refute gems.empty?
   end
+
+  MALFORMED_LOCKFILE = <<~LOCKFILE
+    GEM
+      remote: https://rubygems.org/
+      specs:
+        good_gem (1.0.0)
+        bad_name (not a version)
+        thor (1.3.2)
+
+    PLATFORMS
+      arm64-darwin-24
+
+    DEPENDENCIES
+      good_gem
+      bad_name
+      thor (~> 1.0)
+  LOCKFILE
+
+  def test_parse_drops_an_entry_with_a_malformed_version
+    gems = Gem::Skill::Lockfile.parse(MALFORMED_LOCKFILE)
+    assert_equal "1.0.0", gems["good_gem"]
+    refute gems.key?("bad_name")
+  end
 end

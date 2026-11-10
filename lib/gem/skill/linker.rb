@@ -26,6 +26,7 @@ module Gem::Skill
     end
 
     def self.link(gem_name, version, project_root = Dir.pwd)
+      Validation.validate!(gem_name, version)
       target_dir = File.dirname(Cache.skill_path(gem_name, version))
       raise Error, "No cached skill for #{gem_name} #{version}. Run: gem skill install #{gem_name}" \
         unless File.exist?(Cache.skill_path(gem_name, version))
@@ -39,6 +40,7 @@ module Gem::Skill
     end
 
     def self.unlink(gem_name, project_root = Dir.pwd)
+      Validation.validate_gem_name!(gem_name)
       link_path = File.join(skills_dir(project_root), gem_name)
       File.unlink(link_path) if File.symlink?(link_path)
     end
