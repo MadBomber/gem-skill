@@ -68,6 +68,9 @@ If no source is available, the skill is left untouched.
 | `1` | Error |
 | `2` | `--verify` found and corrected problems |
 
+An error (`1`) takes precedence over corrections (`2`): if any gem errors while
+others were fixed, the command exits `1`.
+
 Either way, `metadata.json` gains a `verification` block recording that the gem's
 actual source was consulted, which files were examined, and — when fixes were
 applied — an array of structured, issue-ready corrections (affected symbol,

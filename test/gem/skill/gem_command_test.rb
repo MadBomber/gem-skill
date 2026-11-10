@@ -32,17 +32,70 @@ class GemCommandTest < Minitest::Test
 
   def test_execute_shows_usage_and_error_for_unknown_subcommand
     set_args("bogus")
-    Gem::Skill.stub(:configure_llm!, nil) { @cmd.execute }
+    Gem::Skill.stub(:configure_llm!, nil) do
+      assert_raises(Gem::SystemExitException) { @cmd.execute }
+    end
     assert_match "install", @output.string
     assert_match "Unknown subcommand", @errors.string
+  end
+
+  def test_execute_exits_1_for_unknown_subcommand
+    set_args("bogus")
+    Gem::Skill.stub(:configure_llm!, nil) do
+      err = assert_raises(Gem::SystemExitException) { @cmd.execute }
+      assert_equal 1, err.exit_code
+    end
+  end
+
+  def test_execute_does_not_exit_for_nil_subcommand
+    set_args
+    Gem::Skill.stub(:configure_llm!, nil) { @cmd.execute } # must not raise
+    assert_match "install", @output.string
   end
 
   # --- cmd_install ---
 
   def test_install_shows_error_without_gem_name
     set_args
-    @cmd.send(:cmd_install)
+    err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
+    assert_equal 1, err.exit_code
     assert_match "gem_name required", @errors.string
+  end
+
+  def test_install_exits_0_on_success
+    set_args("my_gem")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_generator([]) { @cmd.send(:cmd_install) } # must not raise
+    end
+    assert_match "Tip:", @output.string
+  end
+
+  def test_install_exits_1_when_a_gem_fails
+    set_args("bad_gem")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Generator.stub(:new, ->(*) { failing_generator }) do
+        err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
+        assert_equal 1, err.exit_code
+      end
+    end
+    assert_match "bad_gem", @errors.string
+  end
+
+  def test_install_error_takes_precedence_over_verify_fixed
+    set_args("fixed_gem", "bad_gem")
+    set_option(:verify, true)
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, ->(name, *_a, **_k) {
+        if name == "bad_gem"
+          Gem::Skill::Runner::Result.failure("boom")
+        else
+          Gem::Skill::Runner::Result.success(verify_fixed: true)
+        end
+      }) do
+        err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
+        assert_equal 1, err.exit_code
+      end
+    end
   end
 
   def test_install_auto_installs_when_gem_not_present
@@ -60,7 +113,7 @@ class GemCommandTest < Minitest::Test
     set_args("no_such_gem_xyz")
     @cmd.stub(:resolve_installed_version, nil) do
       @cmd.stub(:install_gem, ->(*) { raise Gem::Skill::Error, "Could not install 'no_such_gem_xyz'" }) do
-        @cmd.send(:cmd_install)
+        assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
       end
     end
     assert_match "Could not install", @errors.string
@@ -102,7 +155,7 @@ class GemCommandTest < Minitest::Test
     @cmd.stub(:resolve_installed_version, resolver) do
       Gem::Skill::Generator.stub(:new, ->(name, *) {
         name == "bad_gem" ? failing_generator : simple_generator_tracking(generated, name)
-      }) { @cmd.send(:cmd_install) }
+      }) { assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) } }
     end
     assert_match "bad_gem", @errors.string
     assert_includes generated, "good_gem"
@@ -126,7 +179,7 @@ class GemCommandTest < Minitest::Test
     gen_obj  = simple_generator
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-        @cmd.send(:cmd_install)
+        stub_linker { @cmd.send(:cmd_install) }
       end
     end
     assert_equal "claude-haiku-4-5", captured[:model]
@@ -139,7 +192,7 @@ class GemCommandTest < Minitest::Test
     gen_obj  = simple_generator
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-        @cmd.send(:cmd_install)
+        stub_linker { @cmd.send(:cmd_install) }
       end
     end
     assert_equal 65_536, captured[:max_tokens]
@@ -152,7 +205,7 @@ class GemCommandTest < Minitest::Test
     gen_obj  = simple_generator
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-        @cmd.send(:cmd_install)
+        stub_linker { @cmd.send(:cmd_install) }
       end
     end
     assert_equal 0.5, captured[:temperature]
@@ -162,7 +215,7 @@ class GemCommandTest < Minitest::Test
     set_args("my_gem")
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*) { failing_generator }) do
-        @cmd.send(:cmd_install)  # must not raise
+        assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }  # must not raise Gem::Skill::Error
       end
     end
     assert_match "no docs found", @errors.string
@@ -280,8 +333,18 @@ class GemCommandTest < Minitest::Test
 
   def test_verify_shows_error_without_gem_name
     set_args
-    @cmd.send(:cmd_verify)
+    err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_verify) }
+    assert_equal 1, err.exit_code
     assert_match "gem_name required", @errors.string
+  end
+
+  def test_verify_exits_1_when_a_gem_errors
+    set_args("ghost_gem")
+    @cmd.stub(:resolve_installed_version, nil) do
+      err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_verify) }
+      assert_equal 1, err.exit_code
+    end
+    assert_match "not installed", @errors.string
   end
 
   def test_verify_one_errors_when_gem_not_installed
@@ -428,7 +491,7 @@ class GemCommandTest < Minitest::Test
       obj = Object.new
       obj.define_singleton_method(:generate) { |**| generated << name; "# #{name} skill" }
       obj
-    }) { yield }
+    }) { stub_linker { yield } }
   end
 
   def simple_generator
