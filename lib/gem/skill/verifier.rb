@@ -126,9 +126,9 @@ module Gem::Skill
 
       body = raw[(start + BEGIN_MARK.length)..]
       stop = body.index(END_MARK)
-      body = body[0...stop] if stop
+      return fallback unless stop
 
-      body = body.to_s.strip
+      body = body[0...stop].strip
       body.empty? ? fallback : body
     end
 
