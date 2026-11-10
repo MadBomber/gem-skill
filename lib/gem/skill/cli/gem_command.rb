@@ -76,6 +76,7 @@ class Gem::Commands::SkillCommand < Gem::Command
     else
       alert_error "Unknown subcommand: #{subcmd.inspect}"
       say usage
+      terminate_interaction 1
     end
   end
 
@@ -87,7 +88,7 @@ class Gem::Commands::SkillCommand < Gem::Command
 
     if gem_names.empty?
       alert_error "gem_name required. Usage: gem skill install GEM_NAME [GEM_NAME ...]"
-      return
+      terminate_interaction 1
     end
 
     force       = options[:force]
@@ -118,10 +119,8 @@ class Gem::Commands::SkillCommand < Gem::Command
     say "Tip: run 'bundle plugin install gem-skill' to enable 'bundle skill'."
 
     fixed = results.count(&:verify_fixed)
-    if verify && fixed.positive?
-      say "Verify corrected #{fixed} skill(s) against gem source."
-      terminate_interaction Gem::Skill::EXIT_VERIFY_FIXED
-    end
+    say "Verify corrected #{fixed} skill(s) against gem source." if verify && fixed.positive?
+    exit_for(results, verify_fixed: verify && fixed.positive?)
   end
 
   def install_one(gem_name, spinner:, force:, model:, verify: false, max_tokens: Gem::Skill::Generator::MAX_TOKENS, temperature: Gem::Skill::Generator::DEFAULT_TEMPERATURE)
@@ -147,7 +146,7 @@ class Gem::Commands::SkillCommand < Gem::Command
 
     if gem_names.empty?
       alert_error "gem_name required. Usage: gem skill verify GEM_NAME [GEM_NAME ...]"
-      return
+      terminate_interaction 1
     end
 
     model = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
@@ -172,8 +171,18 @@ class Gem::Commands::SkillCommand < Gem::Command
     end
 
     fixed = results.count(&:verify_fixed)
-    if fixed.positive?
-      say "Verify corrected #{fixed} skill(s) against gem source."
+    say "Verify corrected #{fixed} skill(s) against gem source." if fixed.positive?
+    exit_for(results, verify_fixed: fixed.positive?)
+  end
+
+  # Settle the command's exit status after running a batch of gems. A real error
+  # (exit 1) takes precedence over a verify-fixed result (exit 2); a clean batch
+  # returns normally (exit 0). Mirrors how EXIT_VERIFY_FIXED is raised elsewhere
+  # via Gem::Command#terminate_interaction (Gem::SystemExitException).
+  def exit_for(results, verify_fixed:)
+    if results.any?(&:error)
+      terminate_interaction 1
+    elsif verify_fixed
       terminate_interaction Gem::Skill::EXIT_VERIFY_FIXED
     end
   end
