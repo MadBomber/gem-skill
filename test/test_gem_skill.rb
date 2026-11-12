@@ -47,4 +47,15 @@ class TestGemSkill < Minitest::Test
 
     assert_equal "from-app", config.anthropic_api_key
   end
+
+  def test_configure_llm_sets_timeout_and_applies_env
+    config  = RubyLLM::Configuration.new
+    applied = nil
+    RubyLLM.stub(:configure, ->(&block) { block.call(config) }) do
+      Gem::Skill.stub(:apply_env, ->(c) { applied = c }) { Gem::Skill.configure_llm! }
+    end
+
+    assert_equal Gem::Skill::REQUEST_TIMEOUT, config.request_timeout
+    assert_same config, applied
+  end
 end

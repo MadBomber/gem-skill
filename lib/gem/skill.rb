@@ -69,6 +69,7 @@ module Gem::Skill
   end
 
   # Copy each ENV_KEY_MAP variable that is set in +env+ onto +config+.
+  # Internal: called by configure_llm!; public only so it can be tested alone.
   def self.apply_env(config, env = ENV)
     ENV_KEY_MAP.each do |attr, env_var|
       value = env[env_var]
