@@ -28,16 +28,26 @@ class TestGemSkill < Minitest::Test
     assert_equal ["qwen/qwen3.8-27b", nil], Gem::Skill.parse_model("qwen/qwen3.8-27b")
   end
 
-  def test_configure_llm_applies_ollama_api_base
-    url      = "http://127.0.0.1:9/v1"
-    original = ENV["OLLAMA_API_BASE"]
-    saved    = RubyLLM.config.ollama_api_base
-    ENV["OLLAMA_API_BASE"] = url
-    Gem::Skill.configure_llm!
+  def test_parse_model_extracts_ollama_prefix
+    assert_equal ["llama3.2", :ollama], Gem::Skill.parse_model("ollama/llama3.2")
+  end
 
-    assert_equal url, RubyLLM.config.ollama_api_base
-  ensure
-    original.nil? ? ENV.delete("OLLAMA_API_BASE") : ENV["OLLAMA_API_BASE"] = original
-    RubyLLM.config.ollama_api_base = saved
+  def test_configure_llm_applies_ollama_settings
+    config = configure_llm_with("OLLAMA_API_BASE" => "http://127.0.0.1:9/v1", "OLLAMA_API_KEY" => "token")
+
+    assert_equal "http://127.0.0.1:9/v1", config.ollama_api_base
+    assert_equal "token", config.ollama_api_key
+  end
+
+  private
+
+  # Runs configure_llm! against a fresh Configuration with only +env+ set, so
+  # the test neither reads the machine's real keys nor touches RubyLLM.config.
+  def configure_llm_with(env)
+    config = RubyLLM::Configuration.new
+    ENV.stub(:[], ->(key) { env[key] }) do
+      RubyLLM.stub(:configure, ->(&block) { block.call(config) }) { Gem::Skill.configure_llm! }
+    end
+    config
   end
 end

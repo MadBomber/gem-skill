@@ -36,7 +36,8 @@ module Gem::Skill
     lms_api_key:        "LMS_API_KEY",
     apfel_api_base:     "APFEL_API_BASE",
     apfel_api_key:      "APFEL_API_KEY",
-    ollama_api_base:    "OLLAMA_API_BASE"
+    ollama_api_base:    "OLLAMA_API_BASE",
+    ollama_api_key:     "OLLAMA_API_KEY"
   }.freeze
 
   # Split a "provider/model" string into [model_id, provider_symbol] when the
@@ -53,7 +54,7 @@ module Gem::Skill
   end
 
   # HTTP read timeout in seconds (GEMSKILL_REQUEST_TIMEOUT to override).
-  # RubyLLM's default of 300 is tuned for hosted APIs; a local model (lms/apfel)
+  # RubyLLM's default of 300 is tuned for hosted APIs; a local model (lms/apfel/ollama)
   # can legitimately take longer than that to finish one skill generation.
   REQUEST_TIMEOUT = ENV.fetch("GEMSKILL_REQUEST_TIMEOUT", 900).to_i
 

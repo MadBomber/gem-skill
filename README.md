@@ -135,6 +135,7 @@ All environment variables and their defaults:
 | `APFEL_API_BASE` | `http://127.0.0.1:11434/v1` | Apfel server URL for `apfel/...` models |
 | `APFEL_API_KEY` | _(none)_ | Apfel token, only if started with `apfel --serve --token` |
 | `OLLAMA_API_BASE` | _(none)_ | Ollama server URL for `ollama/...` models, e.g. `http://localhost:11434/v1` |
+| `OLLAMA_API_KEY` | _(none)_ | Ollama token, only if the server sits behind an auth proxy |
 
 ```bash
 # Store skills on a shared drive accessible to all projects
