@@ -27,4 +27,17 @@ class TestGemSkill < Minitest::Test
   def test_parse_model_ignores_non_provider_prefixes
     assert_equal ["qwen/qwen3.8-27b", nil], Gem::Skill.parse_model("qwen/qwen3.8-27b")
   end
+
+  def test_configure_llm_applies_ollama_api_base
+    url      = "http://127.0.0.1:9/v1"
+    original = ENV["OLLAMA_API_BASE"]
+    saved    = RubyLLM.config.ollama_api_base
+    ENV["OLLAMA_API_BASE"] = url
+    Gem::Skill.configure_llm!
+
+    assert_equal url, RubyLLM.config.ollama_api_base
+  ensure
+    original.nil? ? ENV.delete("OLLAMA_API_BASE") : ENV["OLLAMA_API_BASE"] = original
+    RubyLLM.config.ollama_api_base = saved
+  end
 end

@@ -33,6 +33,7 @@ no API key and no per-token cost. Prefix the model name with the provider:
 |----------|----------|----------------------|----------------------------------------|
 | `lms/`   | [LM Studio](https://lmstudio.ai) | `LMS_API_BASE` (`http://localhost:1234/v1`) | `LMS_API_KEY` |
 | `apfel/` | [Apfel](https://apfel.franzai.com/) (Apple's on-device model; Apple Silicon, macOS 26+, Apple Intelligence enabled) | `APFEL_API_BASE` (`http://127.0.0.1:11434/v1`) | `APFEL_API_KEY` (set with `apfel --serve --token`) |
+| `ollama/` | [Ollama](https://ollama.com) | `OLLAMA_API_BASE` (no default; usually `http://localhost:11434/v1`) | _(not needed)_ |
 
 ```bash
 gem skill install faraday --model lms/qwen/qwen3-4b

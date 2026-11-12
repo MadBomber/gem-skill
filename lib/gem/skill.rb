@@ -35,7 +35,8 @@ module Gem::Skill
     lms_api_base:       "LMS_API_BASE",
     lms_api_key:        "LMS_API_KEY",
     apfel_api_base:     "APFEL_API_BASE",
-    apfel_api_key:      "APFEL_API_KEY"
+    apfel_api_key:      "APFEL_API_KEY",
+    ollama_api_base:    "OLLAMA_API_BASE"
   }.freeze
 
   # Split a "provider/model" string into [model_id, provider_symbol] when the

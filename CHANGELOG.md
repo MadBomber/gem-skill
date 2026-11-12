@@ -16,6 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `--temperature TEMP` CLI flag on `gem skill install` — overrides `GEMSKILL_TEMPERATURE` for a single invocation.
 
 ### Fixed
+- `ollama/...` models can now be configured: `OLLAMA_API_BASE` is applied to RubyLLM's `ollama_api_base`. (#15)
 - `gem skill` now exits `1` on error paths (unknown subcommand, missing gem name, and any failed per-gem install/verify) instead of always exiting `0`, so scripts and CI can detect failures as the docs and CHANGELOG already promised. An error (`1`) takes precedence over a verify-fixed result (`2`). (#7)
 - `bundle skill` now consumes flag values (`--model gpt-x install` no longer fails as "unknown subcommand"), accepts the documented `--temperature TEMP` and `gem skill`'s `-f`/`-m` short flags, and rejects unknown or abbreviated flags and non-decimal `--max-tokens` instead of ignoring or guessing.
 - `gem skill verify` no longer overwrites a cached skill with a truncated reply. When the model's response opened `===BEGIN SKILL===` but was cut off before `===END SKILL===`, the verifier accepted the partial tail and wrote it over the cache; it now falls back to the original skill whenever the end marker is missing, as the method already promised.
