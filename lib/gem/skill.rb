@@ -64,10 +64,15 @@ module Gem::Skill
   def self.configure_llm!
     RubyLLM.configure do |config|
       config.request_timeout = REQUEST_TIMEOUT
-      ENV_KEY_MAP.each do |attr, env_var|
-        value = ENV[env_var]
-        config.public_send(:"#{attr}=", value) if value
-      end
+      apply_env(config)
+    end
+  end
+
+  # Copy each ENV_KEY_MAP variable that is set in +env+ onto +config+.
+  def self.apply_env(config, env = ENV)
+    ENV_KEY_MAP.each do |attr, env_var|
+      value = env[env_var]
+      config.public_send(:"#{attr}=", value) if value
     end
   end
 end

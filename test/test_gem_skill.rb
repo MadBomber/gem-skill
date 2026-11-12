@@ -32,22 +32,19 @@ class TestGemSkill < Minitest::Test
     assert_equal ["llama3.2", :ollama], Gem::Skill.parse_model("ollama/llama3.2")
   end
 
-  def test_configure_llm_applies_ollama_settings
-    config = configure_llm_with("OLLAMA_API_BASE" => "http://127.0.0.1:9/v1", "OLLAMA_API_KEY" => "token")
+  def test_apply_env_sets_ollama_settings
+    config = RubyLLM::Configuration.new
+    Gem::Skill.apply_env(config, "OLLAMA_API_BASE" => "http://127.0.0.1:9/v1", "OLLAMA_API_KEY" => "token")
 
     assert_equal "http://127.0.0.1:9/v1", config.ollama_api_base
     assert_equal "token", config.ollama_api_key
   end
 
-  private
-
-  # Runs configure_llm! against a fresh Configuration with only +env+ set, so
-  # the test neither reads the machine's real keys nor touches RubyLLM.config.
-  def configure_llm_with(env)
+  def test_apply_env_leaves_unset_variables_alone
     config = RubyLLM::Configuration.new
-    ENV.stub(:[], ->(key) { env[key] }) do
-      RubyLLM.stub(:configure, ->(&block) { block.call(config) }) { Gem::Skill.configure_llm! }
-    end
-    config
+    config.anthropic_api_key = "from-app"
+    Gem::Skill.apply_env(config, {})
+
+    assert_equal "from-app", config.anthropic_api_key
   end
 end
