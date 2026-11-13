@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `docs/skill-files.md`, `docs/how-it-works.md` and the README now list the four generation sources the Fetcher sends (metadata, README, CHANGELOG, examples) with their local-first and fallback behaviour and the 60,000-character cap; they described three. (#34)
 - `gem skill setup` now exits `1` when registering the Bundler plugin fails or the bundled router skill is missing, instead of always exiting `0`. A failed plugin registration no longer stops it from installing the router skill. Finding no assistant directory is still a success. (#29)
 - `--max-tokens` and `GEMSKIL_MAX_TOKENS` now cap the verify pass (`--verify` and `gem skill verify`) as well as generation; verification previously sent no output limit.
 - `gem skill` now rejects a non-numeric `--max-tokens` or `--temperature` value with an error, as `bundle skill` does, instead of silently sending `0` / `0.0`. (#18)

@@ -47,14 +47,19 @@ lockfile-resolved version for every gem.
 
 `lib/gem/skill/fetcher.rb`
 
-Collects documentation from up to three sources, tried in priority order:
+`fetch_all` returns up to four sources, each read from the installed gem
+(`Gem::Specification`) first:
 
-1. **Local gem install** — reads `README` and `CHANGELOG` from the gem's install directory via `Gem::Specification`
-2. **RubyGems API** — fetches summary, runtime dependencies, source URI
-3. **GitHub raw README** — fetched when the gem is not installed locally; tries `main` then `master` branches, and four common README filename variants
+1. **Metadata** — gemspec summary, description, authors, homepage, licenses, URIs and runtime dependencies; falls back to the RubyGems API when the gem isn't installed
+2. **README** — falls back to the raw README on GitHub; tries `main` then `master` branches, and four common README filename variants
+3. **CHANGELOG** — local only
+4. **Examples** — `examples/**/*.{rb,md}`, local only
 
-Content is truncated at 60,000 characters per source to avoid blowing the LLM
-context window.
+Sources that can't be found are left out. See
+[Sources used to generate](skill-files.md#sources-used-to-generate).
+
+The Generator truncates each source at 60,000 characters to avoid blowing the
+LLM context window.
 
 ### Generator
 
