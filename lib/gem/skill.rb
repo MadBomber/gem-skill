@@ -2,6 +2,7 @@
 
 require_relative "skill/version"
 require_relative "skill/validation"
+require_relative "skill/env"
 require_relative "skill/cache"
 require_relative "skill/fetcher"
 require_relative "skill/frontmatter"
@@ -56,7 +57,7 @@ module Gem::Skill
   # HTTP read timeout in seconds (GEMSKILL_REQUEST_TIMEOUT to override).
   # RubyLLM's default of 300 is tuned for hosted APIs; a local model (lms/apfel/ollama)
   # can legitimately take longer than that to finish one skill generation.
-  REQUEST_TIMEOUT = ENV.fetch("GEMSKILL_REQUEST_TIMEOUT", 900).to_i
+  REQUEST_TIMEOUT = Env.integer("GEMSKILL_REQUEST_TIMEOUT", 900)
 
   # Configure RubyLLM from environment variables. Called automatically by the
   # CLI commands so users don't need a separate initializer for standalone use.

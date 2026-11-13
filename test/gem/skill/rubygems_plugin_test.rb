@@ -91,6 +91,19 @@ class RubygemsPluginTest < Minitest::Test
     assert_includes generated, "my_gem"
   end
 
+  # A non-streaming request sends nothing until generation finishes, so a
+  # slow local model trips Net::ReadTimeout. --with-skill must stream like
+  # Runner does (#33).
+  def test_generate_one_skill_streams_generation
+    streamed = nil
+    gen = Object.new
+    gen.define_singleton_method(:generate) { |**, &blk| streamed = !blk.nil?; "# skill" }
+    Gem::Skill::Generator.stub(:new, ->(*) { gen }) do
+      Gem::Skill.generate_one_skill("my_gem", "1.0.0", null_spinner)
+    end
+    assert streamed, "generate_one_skill must pass a block so the request streams"
+  end
+
   def test_generate_one_skill_does_not_raise_on_gem_skill_error
     Gem::Skill::Generator.stub(:new, ->(*) { failing_generator("no docs found") }) do
       Gem::Skill.generate_one_skill("bad_gem", "1.0.0", null_spinner)  # must not raise
