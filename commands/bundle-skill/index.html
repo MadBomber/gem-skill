@@ -1108,6 +1108,31 @@ e.g. <code>.agents</code> for Codex):</p>
 </span></code></pre></div>
 <p>The assistant automatically reads <code>SKILL.md</code> from each linked directory (Claude
 Code reads <code>.claude/skills/</code>; other assistants use their own roots).</p>
+<p><strong>Exit status</strong> (same for <code>install</code> and <code>refresh</code>, so CI can detect failures):</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>Every gem succeeded and <code>--verify</code> corrected nothing (or was not used)</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>At least one gem failed</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td><code>--verify</code> found and corrected problems</td>
+</tr>
+</tbody>
+</table>
+<p>An error (<code>1</code>) takes precedence over corrections (<code>2</code>): if any gem errors while
+others were fixed, the command exits <code>1</code>.</p>
 <hr />
 <h3 id="bundle-skill-refresh"><code>bundle skill refresh</code><a class="headerlink" href="#bundle-skill-refresh" title="Permanent link">&para;</a></h3>
 <p>Re-sync <code>.claude/skills/</code> after <code>bundle update</code>.</p>
