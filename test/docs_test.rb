@@ -31,7 +31,7 @@ class DocsTest < Minitest::Test
 
   def env_vars_read_by_lib
     fetched = Dir["lib/**/*.rb", base: ROOT].flat_map do |file|
-      read(file).scan(/ENV(?:\.fetch\(?|\.key\?\(?|\[)\s*["']([A-Z0-9_]+)["']/).flatten
+      read(file).scan(/(?:ENV(?:\.fetch\(?|\.key\?\(?|\[)|Env\.(?:integer|float)\(?)\s*["']([A-Z0-9_]+)["']/).flatten
     end
     (fetched + Gem::Skill::ENV_KEY_MAP.values).uniq.sort
   end
