@@ -1220,6 +1220,9 @@ when you work with a Ruby gem and tells the assistant how to find and read that
 gem's cached <code>SKILL.md</code> (resolving the version from <code>Gemfile.lock</code> or the
 installed gem). Re-run <code>gem skill setup</code> after upgrading gem-skill to refresh the
 copy. See <a href="../../installation/">Installation</a> for details.</p>
+<p>Both steps always run. The command exits <code>1</code> if either fails (the Bundler
+plugin could not be registered, or the bundled router skill is missing), and
+<code>0</code> otherwise, including when no assistant home directory was detected.</p>
 <hr />
 <h3 id="gem-skill-list"><code>gem skill list</code><a class="headerlink" href="#gem-skill-list" title="Permanent link">&para;</a></h3>
 <p>Show all skills currently in the global cache. A green checkmark (<code>✓</code>) appears
