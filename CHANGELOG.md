@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `gem skill` now rejects a non-numeric `--max-tokens` or `--temperature` value with an error, as `bundle skill` does, instead of silently sending `0` / `0.0`. (#18)
 - `bundle skill install` and `bundle skill refresh` now exit `1` when any gem fails, instead of `0` (or `2` when `--verify` also fixed another gem). They follow the same rule as `gem skill`: an error (`1`) takes precedence over verify-fixed (`2`), which takes precedence over `0`. (#17)
 - Stray non-gem entries no longer crash cache listing or link pruning. A `.DS_Store` in the skills cache (at the root or inside a gem folder) made `gem skill list` raise `Invalid gem name`/`Invalid gem version`, and a broken non-gem symlink in the project skills dir made `bundle skill install`/`refresh` raise at the prune step. `Cache.all_gems`, `Cache.versions` and `Linker.linked_gems` now skip entries that are not valid gem names or versions, so prune also leaves a user's own links alone. (#16)
 - `docs/cache.md` and `docs/how-it-works.md` now describe the `verification` metadata and the `Verifier::Result` / `Runner::Result` fields the code actually writes; they still listed the removed `used_source_code`, `source`, `change_count` and `changes` fields and `Fetcher#source_manifest`. (#14)

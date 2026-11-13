@@ -25,6 +25,26 @@ class GemCommandTest < Minitest::Test
     leave_temp_project
   end
 
+  # --- option parsing ---
+
+  def test_handle_options_parses_numeric_values
+    @cmd.handle_options(%w[install foo --max-tokens 4096 --temperature 0.7])
+    assert_equal 4096, @cmd.options[:max_tokens]
+    assert_in_delta 0.7, @cmd.options[:temperature]
+  end
+
+  def test_handle_options_rejects_non_numeric_max_tokens
+    assert_raises(Gem::OptionParser::InvalidArgument) do
+      @cmd.handle_options(%w[install foo --max-tokens abc])
+    end
+  end
+
+  def test_handle_options_rejects_non_numeric_temperature
+    assert_raises(Gem::OptionParser::InvalidArgument) do
+      @cmd.handle_options(%w[install foo --temperature hot])
+    end
+  end
+
   # --- execute dispatch ---
 
   def test_execute_shows_usage_for_nil_subcommand
