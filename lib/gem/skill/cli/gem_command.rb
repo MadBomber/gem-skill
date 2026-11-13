@@ -23,11 +23,11 @@ class Gem::Commands::SkillCommand < Gem::Command
     add_option("-m", "--model MODEL",   "LLM model to use (default: #{Gem::Skill::Generator::DEFAULT_MODEL})") do |model, o|
       o[:model] = model
     end
-    add_option("--max-tokens TOKENS",   "Max output tokens (overrides GEMSKIL_MAX_TOKENS; default: #{Gem::Skill::Generator::MAX_TOKENS})") do |tokens, o|
-      o[:max_tokens] = tokens.to_i
+    add_option("--max-tokens TOKENS", Gem::OptionParser::DecimalInteger, "Max output tokens (overrides GEMSKIL_MAX_TOKENS; default: #{Gem::Skill::Generator::MAX_TOKENS})") do |tokens, o|
+      o[:max_tokens] = tokens
     end
-    add_option("--temperature TEMP",    "Sampling temperature; ignored by reasoning models (overrides GEMSKILL_TEMPERATURE; default: #{Gem::Skill::Generator::DEFAULT_TEMPERATURE})") do |temp, o|
-      o[:temperature] = temp.to_f
+    add_option("--temperature TEMP", Float, "Sampling temperature; ignored by reasoning models (overrides GEMSKILL_TEMPERATURE; default: #{Gem::Skill::Generator::DEFAULT_TEMPERATURE})") do |temp, o|
+      o[:temperature] = temp
     end
     add_option("-v", "--version",       "Print gem-skill version and exit") { |_, o| o[:version] = true }
   end
