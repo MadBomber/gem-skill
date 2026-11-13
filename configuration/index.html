@@ -1139,6 +1139,12 @@ no API key and no per-token cost. Prefix the model name with the provider:</p>
 <td><code>APFEL_API_BASE</code> (<code>http://127.0.0.1:11434/v1</code>)</td>
 <td><code>APFEL_API_KEY</code> (set with <code>apfel --serve --token</code>)</td>
 </tr>
+<tr>
+<td><code>ollama/</code></td>
+<td><a href="https://ollama.com">Ollama</a></td>
+<td><code>OLLAMA_API_BASE</code> (no default; usually <code>http://localhost:11434/v1</code>)</td>
+<td><code>OLLAMA_API_KEY</code></td>
+</tr>
 </tbody>
 </table>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>install<span class="w"> </span>faraday<span class="w"> </span>--model<span class="w"> </span>lms/qwen/qwen3-4b
@@ -1308,7 +1314,7 @@ a temperature-supporting model (Claude, Gemini, older GPT) to benefit.</p>
 </tbody>
 </table>
 <p>The <code>--model</code> flag on any command overrides <code>GEMSKILL_MODEL</code> for that single
-invocation only. Use a <code>lms/</code> or <code>apfel/</code> prefix to pick a
+invocation only. Use a <code>lms/</code>, <code>apfel/</code>, or <code>ollama/</code> prefix to pick a
 <a href="#local-models">local model</a>.</p>
 <h3 id="gemskill_request_timeout"><code>GEMSKILL_REQUEST_TIMEOUT</code><a class="headerlink" href="#gemskill_request_timeout" title="Permanent link">&para;</a></h3>
 <p>HTTP timeout, in seconds, for each LLM request.</p>
