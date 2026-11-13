@@ -1178,7 +1178,8 @@ regenerating it.</p>
 </span></code></pre></div>
 <p>This runs the same source-truth check as <code>--verify</code>, but never generates: the
 gem must be installed (verification reads its source) and the skill must already
-be cached. It errors if either is missing rather than generating a new skill.</p>
+be cached. It errors if either is missing rather than generating a new skill.
+<code>--model</code> and <code>--max-tokens</code> apply here as they do to <code>install</code>.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Verify the cached tty-spinner skill against its installed source</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>gem<span class="w"> </span>skill<span class="w"> </span>verify<span class="w"> </span>tty-spinner
 </span></code></pre></div>
