@@ -22,7 +22,8 @@ module Gem::Skill
       if Cache.cached?(gem_name, version) && !force
         Linker.link(gem_name, version)
         content = Cache.read(gem_name, version)
-        return finalize(gem_name, version, content, spinner, model: model, verify: verify, status: "already cached")
+        return finalize(gem_name, version, content, spinner,
+                        model: model, verify: verify, max_tokens: max_tokens, status: "already cached")
       end
 
       # Stream and discard chunks: a non-streaming request sends nothing over
@@ -32,20 +33,21 @@ module Gem::Skill
       generator = Generator.new(gem_name, version, model: model, max_tokens: max_tokens, temperature: temperature)
       content   = generator.generate(force: force) { |_chunk| }
       Linker.link(gem_name, version)
-      finalize(gem_name, version, content, spinner, model: model, verify: verify, status: "done")
+      finalize(gem_name, version, content, spinner,
+               model: model, verify: verify, max_tokens: max_tokens, status: "done")
     rescue => e
       spinner.error("failed")
       Result.failure(e.message)
     end
 
     # Run the optional verify pass and settle the spinner + metadata.
-    def self.finalize(gem_name, version, content, spinner, model:, verify:, status:)
+    def self.finalize(gem_name, version, content, spinner, model:, verify:, max_tokens:, status:)
       unless verify
         spinner.success(status)
         return Result.success
       end
 
-      result = Verifier.new(gem_name, version, model: model).verify(content)
+      result = Verifier.new(gem_name, version, model: model, max_tokens: max_tokens).verify(content)
 
       unless result.verifiable
         Cache.merge_metadata(gem_name, version, verification: {

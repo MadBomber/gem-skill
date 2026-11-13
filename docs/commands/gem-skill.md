@@ -93,6 +93,7 @@ gem skill verify GEM_NAME [GEM_NAME ...]
 This runs the same source-truth check as `--verify`, but never generates: the
 gem must be installed (verification reads its source) and the skill must already
 be cached. It errors if either is missing rather than generating a new skill.
+`--model` and `--max-tokens` apply here as they do to `install`.
 
 ```bash
 # Verify the cached tty-spinner skill against its installed source
