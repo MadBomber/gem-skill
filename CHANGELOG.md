@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `--max-tokens TOKENS` CLI flag on `gem skill install`, `bundle skill install`, and `bundle skill refresh` — overrides `GEMSKIL_MAX_TOKENS` for a single invocation. Provider-correct parameter name is selected automatically (`max_completion_tokens` for OpenAI models, `max_tokens` for all others).
 - `GEMSKILL_TEMPERATURE` environment variable (default `0.2`) — sampling temperature for generation. Lower values produce more consistent, less variable output, appropriate for factual reference docs. Applied only to models that support a temperature parameter; reasoning models (e.g. `gpt-5.5`) report `temperature: false` in their RubyLLM metadata and the value is silently skipped for them.
 - `--temperature TEMP` CLI flag on `gem skill install` — overrides `GEMSKILL_TEMPERATURE` for a single invocation.
+- `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
 - `bundle skill` no longer skips gems from a `git:` source. Bundler lists them as `foo!` in `DEPENDENCIES`; `Lockfile.parse` now strips the `!` for names found under a `GIT` section, so they match their spec. The project's own `path:` gem stays skipped. (#8)
