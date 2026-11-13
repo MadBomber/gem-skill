@@ -5,6 +5,8 @@ require "tmpdir"
 
 class LinkerTest < Minitest::Test
   def setup
+    # Tests below assume the default .claude/skills unless they set their own.
+    @original_project_dir = ENV.delete("GEMSKILL_PROJECT_DIR")
     @project_dir  = Dir.mktmpdir
     @cache_dir    = Dir.mktmpdir
     stub_cache_root(@cache_dir)
@@ -18,9 +20,9 @@ class LinkerTest < Minitest::Test
   end
 
   def teardown
-    FileUtils.rm_rf(@project_dir)
-    FileUtils.rm_rf(@cache_dir)
+    FileUtils.rm_rf([@project_dir, @cache_dir])
     restore_cache_root
+    ENV["GEMSKILL_PROJECT_DIR"] = @original_project_dir # nil deletes the key
   end
 
   def test_link_creates_directory_symlink_in_claude_skills
@@ -59,6 +61,18 @@ class LinkerTest < Minitest::Test
     # Delete the cached skill to simulate a broken link
     FileUtils.rm_rf(File.join(@cache_dir, @gem_name))
     Gem::Skill::Linker.prune_dead_links(@project_dir)
+    assert_empty Gem::Skill::Linker.linked_gems(@project_dir)
+  end
+
+  def test_prune_dead_links_leaves_a_broken_non_gem_symlink_alone
+    skills = File.join(@project_dir, ".claude", "skills")
+    FileUtils.mkdir_p(skills)
+    link = File.join(skills, "_team-notes")
+    File.symlink(File.join(@project_dir, "missing"), link)
+
+    Gem::Skill::Linker.prune_dead_links(@project_dir)
+
+    assert File.symlink?(link), "expected the non-gem symlink to be kept"
     assert_empty Gem::Skill::Linker.linked_gems(@project_dir)
   end
 

@@ -38,6 +38,9 @@ module Gem::Skill
       else
         abort_with_usage("unknown subcommand #{subcmd.inspect}")
       end
+    rescue Gem::Skill::Error => e
+      warn "gem-skill: #{e.message}"
+      exit 1
     end
 
     def self.install(opts = {})

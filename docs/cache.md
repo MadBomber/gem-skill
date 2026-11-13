@@ -55,8 +55,8 @@ Stores provenance information:
 ```
 
 When a skill is generated with `--verify`, a `verification` block is added that
-records that the gem's actual source code was consulted, exactly which files were
-examined, and the issue-ready corrections that resulted:
+records when the skill was checked against the gem's source code, which model
+did the check, and whether that check changed the skill:
 
 ```json
 {
@@ -69,36 +69,14 @@ examined, and the issue-ready corrections that resulted:
     "verified": true,
     "verified_at": "2026-06-19T14:02:11Z",
     "model": "gpt-5.5",
-    "used_source_code": true,
-    "source": {
-      "files": ["lib/tty/spinner.rb", "lib/tty/spinner/multi.rb", "lib/tty/spinner/formats.rb"],
-      "file_count": 3,
-      "chars": 26452,
-      "truncated": false
-    },
-    "fixed": true,
-    "change_count": 1,
-    "changes": [
-      {
-        "category": "default_value",
-        "symbol": "TTY::Spinner#stop",
-        "skill_section": "Core API",
-        "source_location": "lib/tty/spinner.rb:387",
-        "was": "stop(message = nil)",
-        "now": "stop(message = '')",
-        "detail": "Default argument is an empty string, not nil; the README implied nil.",
-        "source_evidence": "def stop(stop_message = '')"
-      }
-    ]
+    "fixed": true
   }
 }
 ```
 
-Each entry in `changes` is detailed enough to open a documentation issue against
-the gem: it names the affected symbol, where the skill was wrong, what it claimed
-versus the truth, and the source snippet that proves it. When source isn't
-available locally, `verification` instead records `"verified": false`,
-`"used_source_code": false`, and a `"skipped_reason"`.
+The itemized list of corrections is not kept. When source isn't available
+locally, `verification` instead records `"verified": false` and a
+`"skipped_reason"` (no `fixed` key).
 
 ## Cache commands
 
