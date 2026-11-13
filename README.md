@@ -233,7 +233,13 @@ bundle skill list
 
 # Options available on install and refresh
 bundle skill install --force
+bundle skill install --verify
 bundle skill install --model claude-haiku-4-5
+bundle skill install --max-tokens 65536
+bundle skill install --temperature 0.0
+
+# Print usage (Bundler intercepts -h/--help)
+bundle skill help
 
 # Print the installed version
 bundle skill --version

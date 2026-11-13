@@ -46,6 +46,15 @@ gem skill install rails --max-tokens 65536
 gem skill install faraday --model claude-sonnet-4-6 --temperature 0.0
 ```
 
+All gems are processed concurrently — you'll see a live spinner per gem:
+
+```
+⠋ Generating skills (claude-sonnet-4-6)
+  ✓ debug_me 1.1.0 done
+  ✓ faraday 2.12.0 done
+  ⠋ zeitwerk 2.8.2
+```
+
 If a gem is not installed locally, gem-skill will install it automatically
 before generating the skill.
 
@@ -112,18 +121,9 @@ Print the installed gem-skill version and exit.
 
 ```bash
 gem skill --version
-# 0.1.3
+# 0.2.2
 gem skill -v
-# 0.1.3
-```
-
-All gems are processed concurrently — you'll see a live spinner per gem:
-
-```
-⠋ Generating skills (claude-sonnet-4-6)
-  ✓ debug_me 1.1.0 done
-  ✓ faraday 2.12.0 done
-  ⠋ zeitwerk 2.8.2
+# 0.2.2
 ```
 
 ---
