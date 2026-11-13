@@ -1158,14 +1158,18 @@ to process. Reads from two sections:</p>
 lockfile-resolved version for every gem.</p>
 <h3 id="fetcher">Fetcher<a class="headerlink" href="#fetcher" title="Permanent link">&para;</a></h3>
 <p><code>lib/gem/skill/fetcher.rb</code></p>
-<p>Collects documentation from up to three sources, tried in priority order:</p>
+<p><code>fetch_all</code> returns up to four sources, each read from the installed gem
+(<code>Gem::Specification</code>) first:</p>
 <ol>
-<li><strong>Local gem install</strong> — reads <code>README</code> and <code>CHANGELOG</code> from the gem's install directory via <code>Gem::Specification</code></li>
-<li><strong>RubyGems API</strong> — fetches summary, runtime dependencies, source URI</li>
-<li><strong>GitHub raw README</strong> — fetched when the gem is not installed locally; tries <code>main</code> then <code>master</code> branches, and four common README filename variants</li>
+<li><strong>Metadata</strong> — gemspec summary, description, authors, homepage, licenses, URIs and runtime dependencies; falls back to the RubyGems API when the gem isn't installed</li>
+<li><strong>README</strong> — falls back to the raw README on GitHub; tries <code>main</code> then <code>master</code> branches, and four common README filename variants</li>
+<li><strong>CHANGELOG</strong> — local only</li>
+<li><strong>Examples</strong> — <code>examples/**/*.{rb,md}</code>, local only</li>
 </ol>
-<p>Content is truncated at 60,000 characters per source to avoid blowing the LLM
-context window.</p>
+<p>Sources that can't be found are left out. See
+<a href="../skill-files/#sources-used-to-generate">Sources used to generate</a>.</p>
+<p>The Generator truncates each source at 60,000 characters to avoid blowing the
+LLM context window.</p>
 <h3 id="generator">Generator<a class="headerlink" href="#generator" title="Permanent link">&para;</a></h3>
 <p><code>lib/gem/skill/generator.rb</code></p>
 <p>Calls the LLM via <code>ruby_llm</code>. Constructs a detailed prompt instructing the

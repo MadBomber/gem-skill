@@ -1038,12 +1038,24 @@ in <code>.claude/skills/</code>). This means:</p>
 <li>Multiple gems can be in scope simultaneously</li>
 </ul>
 <h2 id="sources-used-to-generate">Sources used to generate<a class="headerlink" href="#sources-used-to-generate" title="Permanent link">&para;</a></h2>
-<p>The LLM is given up to three sources per gem (in priority order):</p>
+<p>The LLM is given up to four sources per gem. Each is read from the installed
+gem first; a source that can't be found is left out.</p>
 <ol>
-<li><strong>Local README + CHANGELOG</strong> — from the gem's install directory</li>
-<li><strong>RubyGems API</strong> — summary, dependencies, source URI</li>
-<li><strong>GitHub raw README</strong> — fetched when not installed locally</li>
+<li><strong>Metadata</strong> — from the installed gemspec: summary, description, authors,
+   homepage, licenses, source and documentation URIs, and runtime
+   dependencies. Falls back to the RubyGems API (summary, homepage, source and
+   documentation URIs, runtime dependencies) when the gem isn't installed.</li>
+<li><strong>README</strong> — <code>README.md</code>, <code>README.rdoc</code>, <code>README.txt</code> or <code>README</code> from the
+   gem's install directory. Falls back to the raw README on GitHub (<code>main</code>,
+   then <code>master</code> branch) when the RubyGems API lists a GitHub source or
+   homepage URI.</li>
+<li><strong>CHANGELOG</strong> — <code>CHANGELOG.md</code>, <code>CHANGELOG.rdoc</code>, <code>HISTORY.md</code> or
+   <code>CHANGES.md</code> from the gem's install directory. There is no remote fallback.</li>
+<li><strong>Examples</strong> — every <code>*.rb</code> and <code>*.md</code> file under the gem's <code>examples/</code>
+   directory. Local only. Gem authors who want better skills can ship
+   examples there.</li>
 </ol>
+<p>Each source is truncated to 60,000 characters before it goes into the prompt.</p>
 <p>Content is synthesized, not copied verbatim. The model is instructed to write
 as a knowledgeable colleague, not a marketing document.</p>
 <h2 id="quality-and-regeneration">Quality and regeneration<a class="headerlink" href="#quality-and-regeneration" title="Permanent link">&para;</a></h2>

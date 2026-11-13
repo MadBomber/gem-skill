@@ -1033,7 +1033,11 @@ assistants read too — see <a href="../../skill-files/#using-with-other-assista
 <p>These flags work without a subcommand:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>bundle<span class="w"> </span>skill<span class="w"> </span>--version<span class="w">    </span><span class="c1"># print installed version and exit</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>bundle<span class="w"> </span>skill<span class="w"> </span>-v<span class="w">           </span><span class="c1"># same</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>bundle<span class="w"> </span>skill<span class="w"> </span><span class="nb">help</span><span class="w">         </span><span class="c1"># print usage (subcommands, options, env)</span>
 </span></code></pre></div>
+<p>Bundler intercepts <code>-h</code> and <code>--help</code> before the plugin sees them, so
+<code>bundle skill help</code> (or <code>bundle skill</code> with no subcommand) is the way to see
+the usage text.</p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
 <p>Run once after installing gem-skill:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>gem<span class="w"> </span>skill<span class="w"> </span>setup
@@ -1149,6 +1153,10 @@ others were fixed, the command exits <code>1</code>.</p>
 <tr>
 <td><code>--force</code>, <code>-f</code></td>
 <td>Regenerate all skills, even those already at the correct version</td>
+</tr>
+<tr>
+<td><code>--verify</code></td>
+<td>Verify each skill that is (re)generated against its gem's source and fix mismatches (exit <code>2</code> if any fixes applied); gems shown <code>up to date</code> are not re-verified</td>
 </tr>
 <tr>
 <td><code>--model MODEL</code>, <code>-m MODEL</code></td>
