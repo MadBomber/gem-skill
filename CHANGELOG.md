@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `gem skill setup` now exits `1` when registering the Bundler plugin fails or the bundled router skill is missing, instead of always exiting `0`. A failed plugin registration no longer stops it from installing the router skill. Finding no assistant directory is still a success. (#29)
 - `--max-tokens` and `GEMSKIL_MAX_TOKENS` now cap the verify pass (`--verify` and `gem skill verify`) as well as generation; verification previously sent no output limit.
 - `gem skill` now rejects a non-numeric `--max-tokens` or `--temperature` value with an error, as `bundle skill` does, instead of silently sending `0` / `0.0`. (#18)
 - `bundle skill install` and `bundle skill refresh` now exit `1` when any gem fails, instead of `0` (or `2` when `--verify` also fixed another gem). They follow the same rule as `gem skill`: an error (`1`) takes precedence over verify-fixed (`2`), which takes precedence over `0`. (#17)
