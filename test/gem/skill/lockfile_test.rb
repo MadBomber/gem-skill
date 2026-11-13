@@ -52,6 +52,37 @@ class LockfileTest < Minitest::Test
     refute gems.empty?
   end
 
+  GIT_LOCKFILE = <<~LOCKFILE
+    GIT
+      remote: https://github.com/example/foo.git
+      revision: 0123456789abcdef0123456789abcdef01234567
+      specs:
+        foo (1.2.3)
+
+    PATH
+      remote: .
+      specs:
+        my_project (0.1.0)
+
+    GEM
+      remote: https://rubygems.org/
+      specs:
+        rake (13.2.1)
+
+    PLATFORMS
+      arm64-darwin-24
+
+    DEPENDENCIES
+      foo!
+      my_project!
+      rake
+  LOCKFILE
+
+  def test_parse_includes_git_sourced_gems
+    gems = Gem::Skill::Lockfile.parse(GIT_LOCKFILE)
+    assert_equal({ "foo" => "1.2.3", "rake" => "13.2.1" }, gems)
+  end
+
   MALFORMED_LOCKFILE = <<~LOCKFILE
     GEM
       remote: https://rubygems.org/

@@ -51,7 +51,8 @@ first segment is not a provider name is passed to RubyLLM unchanged.
     `--verify` adds its source code), so most gems won't fit and the output
     will be cut short or rejected. If you try it anyway, lower
     [`GEMSKIL_MAX_TOKENS`](#gemskil_max_tokens) from its 32767 default to fit
-    the window, and skip `--verify`: the verify pass has no output cap.
+    the window. The cap applies to the `--verify` pass too, but verify also
+    sends the gem's source, so it fits the window even less often.
     LM Studio, with a model that has a large context window, is the better
     local choice.
 
@@ -111,7 +112,8 @@ A blank or unset value falls back to the `.claude/skills` default.
 
 ### `GEMSKIL_MAX_TOKENS`
 
-Controls the maximum number of output tokens the LLM may generate for each skill file.
+Controls the maximum number of output tokens the LLM may generate for each skill file,
+in both the generate pass and the verify pass (`--verify` and `gem skill verify`).
 Increase this if generated `SKILL.md` files are being truncated.
 
 | | |

@@ -83,7 +83,7 @@ Manages the global skill cache. Structure:
         ├── SKILL.md
         └── metadata.json   (gem, version, model, generated_at, sources,
                              and after --verify: a "verification" block with
-                             source provenance + structured changes)
+                             verified, verified_at, model, fixed)
 ```
 
 `Cache::ROOT` is set once at load time from `GEMSKILL_DIR` (default: `~/.gem/skills`).
@@ -105,21 +105,17 @@ behavioral claims.
 
 ```ruby
 Verifier.new(gem_name, version, model:).verify(skill_content)
-# => Result(content:, changes:, changed:, verifiable:, source:, model:)
+# => Result(content:, changed:, verifiable:, model:)
 ```
 
-Ground truth comes from `Fetcher#source_code` (the gem's `lib/**/*.rb`), and
-`Fetcher#source_manifest` records which files were examined. Whether the skill
-actually changed is decided by a **deterministic diff** of the content before and
-after — not by trusting the model's self-report — so the exit code is reliable.
-If no installed source is available, `verifiable` is false and the skill is left
-untouched.
+Ground truth comes from `Fetcher#source_code` (the gem's `lib/**/*.rb`).
+Whether the skill actually changed is decided by a **deterministic diff** of the
+content before and after — not by trusting the model's self-report — so the exit
+code is reliable. If no installed source is available, `verifiable` is false and
+the skill is left untouched.
 
-Each correction in `changes` is a structured, issue-ready Hash
-(`category`, `symbol`, `skill_section`, `source_location`, `was`, `now`,
-`detail`, `source_evidence`) — detailed enough to file a documentation bug
-against the gem. The Runner writes these, plus source provenance, into the
-`verification` block of `metadata.json`.
+The Runner records the outcome (`verified`, `verified_at`, `model`, `fixed`) in
+the `verification` block of `metadata.json`.
 
 ### Linker
 
@@ -155,7 +151,7 @@ cache-check → generate → link sequence:
 
 ```ruby
 Runner.install_skill(gem_name, version, spinner, force:, model:, verify:)
-# => Runner::Result(error:, verify_fixed:, change_count:)
+# => Runner::Result(error:, verify_fixed:)
 ```
 
 Captures errors into the result rather than raising, so the caller (the

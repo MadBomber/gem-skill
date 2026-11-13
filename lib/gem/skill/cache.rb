@@ -74,13 +74,14 @@ module Gem::Skill
       dir = File.join(ROOT, gem_name)
       return [] unless Dir.exist?(dir)
 
-      Dir.children(dir).sort
+      Dir.children(dir).select { |entry| Validation.valid_version?(entry) }.sort
     end
 
+    # Stray entries such as Finder's .DS_Store are not gems and are skipped.
     def self.all_gems
       return [] unless Dir.exist?(ROOT)
 
-      Dir.children(ROOT).sort
+      Dir.children(ROOT).select { |entry| Validation.valid_gem_name?(entry) }.sort
     end
 
     def self.purge(gem_name, version)

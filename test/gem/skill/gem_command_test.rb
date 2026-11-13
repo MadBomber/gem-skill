@@ -25,6 +25,26 @@ class GemCommandTest < Minitest::Test
     leave_temp_project
   end
 
+  # --- option parsing ---
+
+  def test_handle_options_parses_numeric_values
+    @cmd.handle_options(%w[install foo --max-tokens 4096 --temperature 0.7])
+    assert_equal 4096, @cmd.options[:max_tokens]
+    assert_in_delta 0.7, @cmd.options[:temperature]
+  end
+
+  def test_handle_options_rejects_non_numeric_max_tokens
+    assert_raises(Gem::OptionParser::InvalidArgument) do
+      @cmd.handle_options(%w[install foo --max-tokens abc])
+    end
+  end
+
+  def test_handle_options_rejects_non_numeric_temperature
+    assert_raises(Gem::OptionParser::InvalidArgument) do
+      @cmd.handle_options(%w[install foo --temperature hot])
+    end
+  end
+
   # --- execute dispatch ---
 
   def test_execute_shows_usage_for_nil_subcommand
@@ -411,6 +431,18 @@ class GemCommandTest < Minitest::Test
         end
       end
     end
+  end
+
+  def test_cmd_verify_forwards_max_tokens
+    pre_cache("my_gem", "1.0.0")
+    set_args("my_gem")
+    set_option(:max_tokens, 1_500)
+    captured = {}
+    install  = ->(*, **kwargs) { Gem::Skill::Runner::Result.success.tap { captured.merge!(kwargs) } }
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, install) { @cmd.send(:cmd_verify) }
+    end
+    assert_equal 1_500, captured[:max_tokens]
   end
 
   # --- install_router_skill (gem skill setup) ---
