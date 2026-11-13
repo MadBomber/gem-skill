@@ -1185,7 +1185,7 @@ markdown code fence wrapper the model adds despite being told not to.</p>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        ├── SKILL.md
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        └── metadata.json   (gem, version, model, generated_at, sources,
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>                             and after --verify: a "verification" block with
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>                             source provenance + structured changes)
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>                             verified, verified_at, model, fixed)
 </span></code></pre></div>
 <p><code>Cache::ROOT</code> is set once at load time from <code>GEMSKILL_DIR</code> (default: <code>~/.gem/skills</code>).</p>
 <p><code>read_metadata</code> / <code>write_skill</code> / <code>merge_metadata</code> let the verifier rewrite a
@@ -1200,19 +1200,15 @@ exact signatures. The verifier re-checks the generated skill against the gem's
 method signatures, default argument values, visibility, return values, and
 behavioral claims.</p>
 <div class="language-ruby highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="no">Verifier</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">gem_name</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="p">,</span><span class="w"> </span><span class="ss">model</span><span class="p">:)</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">skill_content</span><span class="p">)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># =&gt; Result(content:, changes:, changed:, verifiable:, source:, model:)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># =&gt; Result(content:, changed:, verifiable:, model:)</span>
 </span></code></pre></div>
-<p>Ground truth comes from <code>Fetcher#source_code</code> (the gem's <code>lib/**/*.rb</code>), and
-<code>Fetcher#source_manifest</code> records which files were examined. Whether the skill
-actually changed is decided by a <strong>deterministic diff</strong> of the content before and
-after — not by trusting the model's self-report — so the exit code is reliable.
-If no installed source is available, <code>verifiable</code> is false and the skill is left
-untouched.</p>
-<p>Each correction in <code>changes</code> is a structured, issue-ready Hash
-(<code>category</code>, <code>symbol</code>, <code>skill_section</code>, <code>source_location</code>, <code>was</code>, <code>now</code>,
-<code>detail</code>, <code>source_evidence</code>) — detailed enough to file a documentation bug
-against the gem. The Runner writes these, plus source provenance, into the
-<code>verification</code> block of <code>metadata.json</code>.</p>
+<p>Ground truth comes from <code>Fetcher#source_code</code> (the gem's <code>lib/**/*.rb</code>).
+Whether the skill actually changed is decided by a <strong>deterministic diff</strong> of the
+content before and after — not by trusting the model's self-report — so the exit
+code is reliable. If no installed source is available, <code>verifiable</code> is false and
+the skill is left untouched.</p>
+<p>The Runner records the outcome (<code>verified</code>, <code>verified_at</code>, <code>model</code>, <code>fixed</code>) in
+the <code>verification</code> block of <code>metadata.json</code>.</p>
 <h3 id="linker">Linker<a class="headerlink" href="#linker" title="Permanent link">&para;</a></h3>
 <p><code>lib/gem/skill/linker.rb</code></p>
 <p>Creates and manages directory symlinks in the project's skill directory
@@ -1235,7 +1231,7 @@ list or referenced explicitly before it's <em>active</em>.</p>
 <p>Shared core used by both CLI commands. Drives one gem through the
 cache-check → generate → link sequence:</p>
 <div class="language-ruby highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="no">Runner</span><span class="o">.</span><span class="n">install_skill</span><span class="p">(</span><span class="n">gem_name</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="p">,</span><span class="w"> </span><span class="n">spinner</span><span class="p">,</span><span class="w"> </span><span class="ss">force</span><span class="p">:,</span><span class="w"> </span><span class="ss">model</span><span class="p">:,</span><span class="w"> </span><span class="ss">verify</span><span class="p">:)</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># =&gt; Runner::Result(error:, verify_fixed:, change_count:)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># =&gt; Runner::Result(error:, verify_fixed:)</span>
 </span></code></pre></div>
 <p>Captures errors into the result rather than raising, so the caller (the
 concurrent fiber) can record them without killing other in-flight fibers. When

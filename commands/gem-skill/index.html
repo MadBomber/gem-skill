@@ -1164,11 +1164,10 @@ If no source is available, the skill is left untouched.</p>
 </table>
 <p>An error (<code>1</code>) takes precedence over corrections (<code>2</code>): if any gem errors while
 others were fixed, the command exits <code>1</code>.</p>
-<p>Either way, <code>metadata.json</code> gains a <code>verification</code> block recording that the gem's
-actual source was consulted, which files were examined, and — when fixes were
-applied — an array of structured, issue-ready corrections (affected symbol,
-source location, what the skill said vs. the truth, and the proving source
-snippet). See <a href="../../cache/#metadatajson">Cache layout</a> for the full schema.</p>
+<p>Either way, <code>metadata.json</code> gains a <code>verification</code> block recording when the
+skill was checked against the gem's actual source, which model checked it, and
+whether fixes were applied. See <a href="../../cache/#metadatajson">Cache layout</a> for the
+full schema.</p>
 <p>A verified skill is flagged with a green checkmark in
 <a href="#gem-skill-list"><code>gem skill list</code></a>.</p>
 <hr />
