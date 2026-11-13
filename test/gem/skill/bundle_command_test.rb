@@ -138,6 +138,16 @@ class BundlerCommandTest < Minitest::Test
     assert_match "No skills linked", @output.string
   end
 
+  def test_run_without_lockfile_reports_error_and_exits
+    Gem::Skill.stub(:configure_llm!, nil) do
+      Dir.chdir(@tmpdir) do
+        error = assert_raises(SystemExit) { Gem::Skill::BundlerCommand.run(%w[install]) }
+        assert_equal 1, error.status
+      end
+    end
+    assert_equal "gem-skill: Gemfile.lock not found at Gemfile.lock\n", @errors.string
+  end
+
   # --- install ---
 
   def test_install_skips_generation_when_already_cached

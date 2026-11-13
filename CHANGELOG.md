@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `strip_wrapper_fence` no longer deletes the closing ``` of a skill that legitimately ends with a code block. The trailing wrapper fence is now stripped only when a matching opening wrapper fence (```` ```markdown ```` / ```` ``` ```` at the very start) was present. Previously the final ``` was removed unconditionally, leaving the last code block open at end-of-file — which looked like the LLM truncating its output but was entirely a post-processing bug. Regenerate affected skills with `gem skill install GEM --force`.
 - `docs/installation.md` now gives the Ruby requirement as >= 3.4, matching the gemspec (it said >= 3.2.0).
 - The "Cache layout" link in `docs/commands/gem-skill.md` now points at `../cache.md#metadatajson`; the broken relative link made `mkdocs build --strict` abort.
+- `bundle skill install` and `refresh` with no `Gemfile.lock` now print `gem-skill: Gemfile.lock not found at Gemfile.lock` and exit `1`, instead of Bundler's error-report template and a backtrace. (#28)
 
 ### Changed
 - `Generator::MAX_TOKENS` constant reads from `GEMSKIL_MAX_TOKENS` and is passed via `with_params` to every `RubyLLM.chat` call, covering both streaming and non-streaming paths.
