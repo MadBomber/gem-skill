@@ -16,6 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `--temperature TEMP` CLI flag on `gem skill install` — overrides `GEMSKILL_TEMPERATURE` for a single invocation.
 
 ### Fixed
+- `bundle skill install` and `bundle skill refresh` now exit `1` when any gem fails, instead of `0` (or `2` when `--verify` also fixed another gem). They follow the same rule as `gem skill`: an error (`1`) takes precedence over verify-fixed (`2`), which takes precedence over `0`. (#17)
 - `ollama/...` models can now be configured: `OLLAMA_API_BASE` and `OLLAMA_API_KEY` are applied to RubyLLM's `ollama_api_base` and `ollama_api_key`. (#15)
 - `gem skill` now exits `1` on error paths (unknown subcommand, missing gem name, and any failed per-gem install/verify) instead of always exiting `0`, so scripts and CI can detect failures as the docs and CHANGELOG already promised. An error (`1`) takes precedence over a verify-fixed result (`2`). (#7)
 - `bundle skill` now consumes flag values (`--model gpt-x install` no longer fails as "unknown subcommand"), accepts the documented `--temperature TEMP` and `gem skill`'s `-f`/`-m` short flags, and rejects unknown or abbreviated flags and non-decimal `--max-tokens` instead of ignoring or guessing.
@@ -55,6 +56,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Documentation reworded to be assistant-neutral: `SKILL.md` is a shared format read by Claude Code, OpenAI Codex, and other AI coding assistants. Added guidance for pointing non-Claude assistants (e.g. Codex's `~/.codex/skills`, the vendor-neutral `~/.agents/skills`) at the shared cache. `bundle skill` still links into `.claude/skills/` (Claude Code's convention).
 
 ### Fixed
+- `bundle skill install` and `bundle skill refresh` now exit `1` when any gem fails, instead of `0` (or `2` when `--verify` also fixed another gem). They follow the same rule as `gem skill`: an error (`1`) takes precedence over verify-fixed (`2`), which takes precedence over `0`. (#17)
 - Generated `SKILL.md` files now include the required YAML frontmatter (`name` + `description`). Without it, the files were never registered/triggered as skills by Claude Code or OpenAI Codex — they were just markdown in a skills folder. `name` is the gem name normalized to hyphen-case (e.g. `ruby_llm` → `ruby-llm`); `description` is a trigger-oriented one-liner derived from the Overview (sanitized for both assistants: single line, no angle brackets). Verified against Claude Code's skill validator and OpenAI's Codex skill spec.
 
 ### Note

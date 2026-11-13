@@ -88,6 +88,17 @@ your-project/.claude/skills/
 The assistant automatically reads `SKILL.md` from each linked directory (Claude
 Code reads `.claude/skills/`; other assistants use their own roots).
 
+**Exit status** (same for `install` and `refresh`, so CI can detect failures):
+
+| Code | Meaning |
+|------|---------|
+| `0` | Every gem succeeded and `--verify` corrected nothing (or was not used) |
+| `1` | At least one gem failed |
+| `2` | `--verify` found and corrected problems |
+
+An error (`1`) takes precedence over corrections (`2`): if any gem errors while
+others were fixed, the command exits `1`.
+
 ---
 
 ### `bundle skill refresh`
