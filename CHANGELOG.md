@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `bundle skill install` and `bundle skill refresh` now exit `1` when any gem fails, instead of `0` (or `2` when `--verify` also fixed another gem). They follow the same rule as `gem skill`: an error (`1`) takes precedence over verify-fixed (`2`), which takes precedence over `0`. (#17)
 - Stray non-gem entries no longer crash cache listing or link pruning. A `.DS_Store` in the skills cache (at the root or inside a gem folder) made `gem skill list` raise `Invalid gem name`/`Invalid gem version`, and a broken non-gem symlink in the project skills dir made `bundle skill install`/`refresh` raise at the prune step. `Cache.all_gems`, `Cache.versions` and `Linker.linked_gems` now skip entries that are not valid gem names or versions, so prune also leaves a user's own links alone. (#16)
 - `docs/cache.md` and `docs/how-it-works.md` now describe the `verification` metadata and the `Verifier::Result` / `Runner::Result` fields the code actually writes; they still listed the removed `used_source_code`, `source`, `change_count` and `changes` fields and `Fetcher#source_manifest`. (#14)
 - `bundle skill` no longer skips gems from a `git:` source. Bundler lists them as `foo!` in `DEPENDENCIES`; `Lockfile.parse` now strips the `!` for names found under a `GIT` section, so they match their spec. The project's own `path:` gem stays skipped. (#8)
@@ -60,6 +61,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Documentation reworded to be assistant-neutral: `SKILL.md` is a shared format read by Claude Code, OpenAI Codex, and other AI coding assistants. Added guidance for pointing non-Claude assistants (e.g. Codex's `~/.codex/skills`, the vendor-neutral `~/.agents/skills`) at the shared cache. `bundle skill` still links into `.claude/skills/` (Claude Code's convention).
 
 ### Fixed
+- `bundle skill install` and `bundle skill refresh` now exit `1` when any gem fails, instead of `0` (or `2` when `--verify` also fixed another gem). They follow the same rule as `gem skill`: an error (`1`) takes precedence over verify-fixed (`2`), which takes precedence over `0`. (#17)
 - Generated `SKILL.md` files now include the required YAML frontmatter (`name` + `description`). Without it, the files were never registered/triggered as skills by Claude Code or OpenAI Codex — they were just markdown in a skills folder. `name` is the gem name normalized to hyphen-case (e.g. `ruby_llm` → `ruby-llm`); `description` is a trigger-oriented one-liner derived from the Overview (sanitized for both assistants: single line, no angle brackets). Verified against Claude Code's skill validator and OpenAI's Codex skill spec.
 
 ### Note
