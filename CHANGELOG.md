@@ -16,6 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `--temperature TEMP` CLI flag on `gem skill install` — overrides `GEMSKILL_TEMPERATURE` for a single invocation.
 
 ### Fixed
+- Stray non-gem entries no longer crash cache listing or link pruning. A `.DS_Store` in the skills cache (at the root or inside a gem folder) made `gem skill list` raise `Invalid gem name`/`Invalid gem version`, and a broken non-gem symlink in the project skills dir made `bundle skill install`/`refresh` raise at the prune step. `Cache.all_gems`, `Cache.versions` and `Linker.linked_gems` now skip entries that are not valid gem names or versions, so prune also leaves a user's own links alone. (#16)
 - `ollama/...` models can now be configured: `OLLAMA_API_BASE` and `OLLAMA_API_KEY` are applied to RubyLLM's `ollama_api_base` and `ollama_api_key`. (#15)
 - `gem skill` now exits `1` on error paths (unknown subcommand, missing gem name, and any failed per-gem install/verify) instead of always exiting `0`, so scripts and CI can detect failures as the docs and CHANGELOG already promised. An error (`1`) takes precedence over a verify-fixed result (`2`). (#7)
 - `bundle skill` now consumes flag values (`--model gpt-x install` no longer fails as "unknown subcommand"), accepts the documented `--temperature TEMP` and `gem skill`'s `-f`/`-m` short flags, and rejects unknown or abbreviated flags and non-decimal `--max-tokens` instead of ignoring or guessing.

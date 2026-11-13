@@ -76,6 +76,22 @@ class CacheTest < Minitest::Test
     end
   end
 
+  def test_all_gems_skips_non_gem_entries
+    with_tmp_cache do
+      Gem::Skill::Cache.store("rake", "13.0.0", "skill")
+      File.write(File.join(@tmpdir, ".DS_Store"), "x")
+      assert_equal %w[rake], Gem::Skill::Cache.all_gems
+    end
+  end
+
+  def test_versions_skips_non_version_entries
+    with_tmp_cache do
+      Gem::Skill::Cache.store("rake", "13.0.0", "skill")
+      File.write(File.join(@tmpdir, "rake", ".DS_Store"), "x")
+      assert_equal %w[13.0.0], Gem::Skill::Cache.versions("rake")
+    end
+  end
+
   def test_skill_path_rejects_a_name_that_is_not_a_plain_gem_name
     assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.skill_path("foo/bar", "1.0.0") }
   end
