@@ -252,11 +252,15 @@ Each `SKILL.md` covers:
 - **Configuration** — initializer patterns and environment variables
 - **Testing** — how to test code that uses the gem
 
-The content is synthesized from three sources, tried in priority order:
+The content is synthesized from up to four sources, each read from the
+installed gem (`Gem::Specification` → `gem_dir`) first:
 
-1. Local gem install (`Gem::Specification` → `gem_dir`) — README and CHANGELOG
-2. RubyGems API — summary, runtime dependencies, source URI
-3. GitHub raw README — fetched when the gem isn't installed locally
+1. Metadata — gemspec summary, description, authors, URIs, runtime dependencies; RubyGems API when the gem isn't installed
+2. README — raw GitHub README when no local one is found
+3. CHANGELOG — local only
+4. Examples — `examples/**/*.{rb,md}`, local only
+
+Each source is truncated to 60,000 characters.
 
 ## Development
 

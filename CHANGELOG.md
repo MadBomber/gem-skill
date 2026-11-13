@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `docs/skill-files.md`, `docs/how-it-works.md` and the README now list the four generation sources the Fetcher sends (metadata, README, CHANGELOG, examples) with their local-first and fallback behaviour and the 60,000-character cap; they described three. (#34)
 - An unparseable `GEMSKILL_REQUEST_TIMEOUT`, `GEMSKIL_MAX_TOKENS` or `GEMSKILL_TEMPERATURE` now warns and keeps the default instead of silently becoming `0` / `0.0`. (#35)
 - `gem install --with-skill` now streams the generation request, as `gem skill install` and `bundle skill install` do, so slow local models no longer hit `Net::ReadTimeout` before the reply starts. (#33)
 - `gem skill setup` now exits `1` when registering the Bundler plugin fails or the bundled router skill is missing, instead of always exiting `0`. A failed plugin registration no longer stops it from installing the router skill. Finding no assistant directory is still a success. (#29)
