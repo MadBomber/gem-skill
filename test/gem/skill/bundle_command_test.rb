@@ -138,6 +138,16 @@ class BundlerCommandTest < Minitest::Test
     assert_match "No skills linked", @output.string
   end
 
+  def test_run_without_lockfile_reports_error_and_exits
+    Gem::Skill.stub(:configure_llm!, nil) do
+      Dir.chdir(@tmpdir) do
+        error = assert_raises(SystemExit) { Gem::Skill::BundlerCommand.run(%w[install]) }
+        assert_equal 1, error.status
+      end
+    end
+    assert_equal "gem-skill: Gemfile.lock not found at Gemfile.lock\n", @errors.string
+  end
+
   # --- install ---
 
   def test_install_skips_generation_when_already_cached
@@ -189,7 +199,7 @@ class BundlerCommandTest < Minitest::Test
       stub_linker do
         Gem::Skill::Generator.stub(:new, ->(name, *) {
           name == "my_gem" ? failing_gen : fake_gen(generated, name)
-        }) { Gem::Skill::BundlerCommand.install }
+        }) { assert_raises(SystemExit) { Gem::Skill::BundlerCommand.install } }
       end
     end
     assert_includes generated, "other_gem"
@@ -200,11 +210,37 @@ class BundlerCommandTest < Minitest::Test
     stub_lockfile(FAKE_GEMS) do
       stub_linker do
         Gem::Skill::Generator.stub(:new, ->(*) { failing_gen }) do
-          Gem::Skill::BundlerCommand.install
+          assert_raises(SystemExit) { Gem::Skill::BundlerCommand.install }
         end
       end
     end
     assert_match "Errors", @errors.string
+  end
+
+  # --- exit status ---
+
+  def test_install_exits_1_when_a_gem_fails
+    assert_equal 1, batch_exit_status(:install, { "my_gem" => Gem::Skill::Runner::Result.failure("boom") })
+  end
+
+  def test_refresh_exits_1_when_a_gem_fails
+    assert_equal 1, batch_exit_status(:refresh, { "my_gem" => Gem::Skill::Runner::Result.failure("boom") })
+  end
+
+  def test_install_error_takes_precedence_over_verify_fixed
+    results = {
+      "my_gem"    => Gem::Skill::Runner::Result.failure("boom"),
+      "other_gem" => Gem::Skill::Runner::Result.success(verify_fixed: true)
+    }
+    assert_equal 1, batch_exit_status(:install, results, verify: true)
+  end
+
+  def test_install_exits_2_when_verify_fixed_without_errors
+    results = {
+      "my_gem"    => Gem::Skill::Runner::Result.success,
+      "other_gem" => Gem::Skill::Runner::Result.success(verify_fixed: true)
+    }
+    assert_equal Gem::Skill::EXIT_VERIFY_FIXED, batch_exit_status(:install, results, verify: true)
   end
 
   def test_install_passes_custom_model_to_generator
@@ -309,6 +345,19 @@ class BundlerCommandTest < Minitest::Test
   end
 
   private
+
+  def batch_exit_status(command, results, **opts)
+    stub_lockfile(FAKE_GEMS) do
+      stub_linker(linked: {}) do
+        Gem::Skill::Runner.stub(:install_skill, ->(name, *, **) { results.fetch(name, Gem::Skill::Runner::Result.success) }) do
+          Gem::Skill::BundlerCommand.public_send(command, opts)
+          0
+        rescue SystemExit => e
+          e.status
+        end
+      end
+    end
+  end
 
   def call_parse_options(args)
     Gem::Skill::BundlerCommand.send(:parse_options, args)

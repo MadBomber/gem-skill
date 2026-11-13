@@ -38,6 +38,9 @@ module Gem::Skill
       else
         abort_with_usage("unknown subcommand #{subcmd.inspect}")
       end
+    rescue Gem::Skill::Error => e
+      warn "gem-skill: #{e.message}"
+      exit 1
     end
 
     def self.install(opts = {})
@@ -80,6 +83,7 @@ module Gem::Skill
       Linker.prune_dead_links
       report_errors(errors)
       report_verify(results, verify)
+      exit_for(errors, results)
     end
 
     def self.refresh(opts = {})
@@ -124,6 +128,7 @@ module Gem::Skill
       Linker.prune_dead_links
       report_errors(errors)
       report_verify(results, verify)
+      exit_for(errors, results)
     end
 
     def self.list
@@ -162,8 +167,6 @@ module Gem::Skill
     end
     private_class_method :report_errors
 
-    # When --verify applied fixes, report and exit non-zero so callers/CI can
-    # detect that the README-derived skill disagreed with the source.
     def self.report_verify(results, verify)
       return unless verify
 
@@ -172,9 +175,16 @@ module Gem::Skill
 
       warn ""
       warn "Verify corrected #{fixed} skill(s) against gem source."
-      exit Gem::Skill::EXIT_VERIFY_FIXED
     end
     private_class_method :report_verify
+
+    # Settle the exit status after a batch so callers/CI can detect failures: an
+    # error (1) takes precedence over verify-fixed (2); a clean batch exits 0.
+    def self.exit_for(errors, results)
+      exit 1 unless errors.empty?
+      exit Gem::Skill::EXIT_VERIFY_FIXED if results.any?(&:verify_fixed)
+    end
+    private_class_method :exit_for
 
     # Returns [opts, remaining_args]. Flags may come before or after the
     # subcommand, whatever POSIXLY_CORRECT says. Raises OptionParser::ParseError
