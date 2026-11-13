@@ -13,7 +13,12 @@ These flags work without a subcommand:
 ```bash
 bundle skill --version    # print installed version and exit
 bundle skill -v           # same
+bundle skill help         # print usage (subcommands, options, env)
 ```
+
+Bundler intercepts `-h` and `--help` before the plugin sees them, so
+`bundle skill help` (or `bundle skill` with no subcommand) is the way to see
+the usage text.
 
 ## Prerequisites
 
@@ -112,6 +117,7 @@ bundle skill refresh [OPTIONS]
 | Flag | Description |
 |------|-------------|
 | `--force`, `-f` | Regenerate all skills, even those already at the correct version |
+| `--verify` | Verify each skill that is (re)generated against its gem's source and fix mismatches (exit `2` if any fixes applied); gems shown `up to date` are not re-verified |
 | `--model MODEL`, `-m MODEL` | LLM model to use |
 | `--max-tokens TOKENS` | Max output tokens per skill (overrides `GEMSKIL_MAX_TOKENS`; default: 32767) |
 | `--temperature TEMP` | Sampling temperature; ignored by reasoning models (overrides `GEMSKILL_TEMPERATURE`; default: 0.2) |
