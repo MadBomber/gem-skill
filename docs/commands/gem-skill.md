@@ -71,11 +71,10 @@ If no source is available, the skill is left untouched.
 An error (`1`) takes precedence over corrections (`2`): if any gem errors while
 others were fixed, the command exits `1`.
 
-Either way, `metadata.json` gains a `verification` block recording that the gem's
-actual source was consulted, which files were examined, and — when fixes were
-applied — an array of structured, issue-ready corrections (affected symbol,
-source location, what the skill said vs. the truth, and the proving source
-snippet). See [Cache layout](../cache.md#metadatajson) for the full schema.
+Either way, `metadata.json` gains a `verification` block recording when the
+skill was checked against the gem's actual source, which model checked it, and
+whether fixes were applied. See [Cache layout](../cache.md#metadatajson) for the
+full schema.
 
 A verified skill is flagged with a green checkmark in
 [`gem skill list`](#gem-skill-list).
