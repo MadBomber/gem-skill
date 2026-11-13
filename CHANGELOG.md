@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `docs/cache.md` and `docs/how-it-works.md` now describe the `verification` metadata and the `Verifier::Result` / `Runner::Result` fields the code actually writes; they still listed the removed `used_source_code`, `source`, `change_count` and `changes` fields and `Fetcher#source_manifest`. (#14)
 - `bundle skill` no longer skips gems from a `git:` source. Bundler lists them as `foo!` in `DEPENDENCIES`; `Lockfile.parse` now strips the `!` for names found under a `GIT` section, so they match their spec. The project's own `path:` gem stays skipped. (#8)
 - `ollama/...` models can now be configured: `OLLAMA_API_BASE` and `OLLAMA_API_KEY` are applied to RubyLLM's `ollama_api_base` and `ollama_api_key`. (#15)
 - `gem skill` now exits `1` on error paths (unknown subcommand, missing gem name, and any failed per-gem install/verify) instead of always exiting `0`, so scripts and CI can detect failures as the docs and CHANGELOG already promised. An error (`1`) takes precedence over a verify-fixed result (`2`). (#7)
