@@ -1,14 +1,21 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "open3"
+require "tmpdir"
 
 class TestGemSkill < Minitest::Test
   def test_that_it_has_a_version_number
     refute_nil ::Gem::Skill::VERSION
   end
 
-  def test_cache_root_is_in_home_dir
-    assert_match(%r{\.gem/skills}, Gem::Skill::Cache::ROOT)
+  def test_cache_root_defaults_to_home_dir
+    assert_equal File.expand_path("~/.gem/skills"), cache_root_loaded_with("GEMSKILL_DIR" => nil)
+  end
+
+  def test_cache_root_honors_gemskill_dir
+    dir = File.join(Dir.tmpdir, "gemskill-cache")
+    assert_equal dir, cache_root_loaded_with("GEMSKILL_DIR" => dir)
   end
 
   def test_provider_plugins_are_registered
@@ -57,5 +64,16 @@ class TestGemSkill < Minitest::Test
 
     assert_equal Gem::Skill::REQUEST_TIMEOUT, config.request_timeout
     assert_same config, applied
+  end
+
+  private
+
+  # ROOT is fixed when the gem loads, so read it from a fresh Ruby with env.
+  def cache_root_loaded_with(env)
+    lib = File.expand_path("../lib", __dir__)
+    out, err, status = Open3.capture3(env, RbConfig.ruby, "-I", lib, "-e",
+                                      'require "gem/skill"; print Gem::Skill::Cache::ROOT')
+    assert status.success?, err
+    out
   end
 end

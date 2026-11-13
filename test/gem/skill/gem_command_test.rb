@@ -140,6 +140,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_includes generated, "my_gem"
+    assert_linked "my_gem", "1.0.0"
   end
 
   def test_install_multiple_gems
@@ -491,12 +492,17 @@ class GemCommandTest < Minitest::Test
     File.write(File.join(dir, "SKILL.md"), "# #{gem_name} skill")
   end
 
+  # Like the real Generator, the fake caches what it generates, so the
+  # install's real Linker.link has a skill to link.
   def stub_generator(generated)
-    Gem::Skill::Generator.stub(:new, ->(name, *) {
+    Gem::Skill::Generator.stub(:new, ->(name, version, **) {
       obj = Object.new
-      obj.define_singleton_method(:generate) { |**| generated << name; "# #{name} skill" }
+      obj.define_singleton_method(:generate) do |**|
+        generated << name
+        "# #{name} skill".tap { |content| Gem::Skill::Cache.store(name, version, content) }
+      end
       obj
-    }) { stub_linker { yield } }
+    }) { yield }
   end
 
   def simple_generator

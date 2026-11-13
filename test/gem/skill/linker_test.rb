@@ -5,6 +5,8 @@ require "tmpdir"
 
 class LinkerTest < Minitest::Test
   def setup
+    # Tests below assume the default .claude/skills unless they set their own.
+    @original_project_dir = ENV.delete("GEMSKILL_PROJECT_DIR")
     @project_dir  = Dir.mktmpdir
     @cache_dir    = Dir.mktmpdir
     stub_cache_root(@cache_dir)
@@ -18,9 +20,9 @@ class LinkerTest < Minitest::Test
   end
 
   def teardown
-    FileUtils.rm_rf(@project_dir)
-    FileUtils.rm_rf(@cache_dir)
+    FileUtils.rm_rf([@project_dir, @cache_dir])
     restore_cache_root
+    ENV["GEMSKILL_PROJECT_DIR"] = @original_project_dir # nil deletes the key
   end
 
   def test_link_creates_directory_symlink_in_claude_skills
