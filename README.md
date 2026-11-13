@@ -102,8 +102,8 @@ export ANTHROPIC_API_KEY="..."   # or use Claude
 export GEMINI_API_KEY="..."      # or Gemini
 ```
 
-Or run a local model (LM Studio or Apfel) with no API key by prefixing the
-model with `lms/` or `apfel/`. Apfel's 4,096-token context fits only very
+Or run a local model (LM Studio, Apfel, or Ollama) with no API key by prefixing the
+model with `lms/`, `apfel/`, or `ollama/`. Apfel's 4,096-token context fits only very
 small gems, and only with a lower `GEMSKIL_MAX_TOKENS`; see
 [Local models](https://madbomber.github.io/gem-skill/configuration/#local-models):
 
@@ -134,6 +134,8 @@ All environment variables and their defaults:
 | `LMS_API_KEY` | _(none)_ | LM Studio API token, only if the server requires one |
 | `APFEL_API_BASE` | `http://127.0.0.1:11434/v1` | Apfel server URL for `apfel/...` models |
 | `APFEL_API_KEY` | _(none)_ | Apfel token, only if started with `apfel --serve --token` |
+| `OLLAMA_API_BASE` | _(none)_ | Ollama server URL for `ollama/...` models, e.g. `http://localhost:11434/v1` |
+| `OLLAMA_API_KEY` | _(none)_ | Ollama token, only if the server sits behind an auth proxy |
 
 ```bash
 # Store skills on a shared drive accessible to all projects

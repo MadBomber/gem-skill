@@ -35,7 +35,9 @@ module Gem::Skill
     lms_api_base:       "LMS_API_BASE",
     lms_api_key:        "LMS_API_KEY",
     apfel_api_base:     "APFEL_API_BASE",
-    apfel_api_key:      "APFEL_API_KEY"
+    apfel_api_key:      "APFEL_API_KEY",
+    ollama_api_base:    "OLLAMA_API_BASE",
+    ollama_api_key:     "OLLAMA_API_KEY"
   }.freeze
 
   # Split a "provider/model" string into [model_id, provider_symbol] when the
@@ -52,7 +54,7 @@ module Gem::Skill
   end
 
   # HTTP read timeout in seconds (GEMSKILL_REQUEST_TIMEOUT to override).
-  # RubyLLM's default of 300 is tuned for hosted APIs; a local model (lms/apfel)
+  # RubyLLM's default of 300 is tuned for hosted APIs; a local model (lms/apfel/ollama)
   # can legitimately take longer than that to finish one skill generation.
   REQUEST_TIMEOUT = ENV.fetch("GEMSKILL_REQUEST_TIMEOUT", 900).to_i
 
@@ -62,10 +64,16 @@ module Gem::Skill
   def self.configure_llm!
     RubyLLM.configure do |config|
       config.request_timeout = REQUEST_TIMEOUT
-      ENV_KEY_MAP.each do |attr, env_var|
-        value = ENV[env_var]
-        config.public_send(:"#{attr}=", value) if value
-      end
+      apply_env(config)
+    end
+  end
+
+  # Copy each ENV_KEY_MAP variable that is set in +env+ onto +config+.
+  # Internal: called by configure_llm!; public only so it can be tested alone.
+  def self.apply_env(config, env = ENV)
+    ENV_KEY_MAP.each do |attr, env_var|
+      value = env[env_var]
+      config.public_send(:"#{attr}=", value) if value
     end
   end
 end
