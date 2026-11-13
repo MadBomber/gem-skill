@@ -261,34 +261,45 @@ class Gem::Commands::SkillCommand < Gem::Command
     "Agents (vendor-neutral)" => "~/.agents/skills"
   }.freeze
 
+  # Runs both setup steps even when the first fails, then exits 1 if either did.
   def cmd_setup
-    register_bundler_plugin
+    plugin_ok = register_bundler_plugin
     say ""
-    install_router_skill
+    router_ok = install_router_skill
+    terminate_interaction 1 unless plugin_ok && router_ok
   end
 
+  # True when gem-skill is (now) a registered Bundler plugin.
   def register_bundler_plugin
     plugin_list = `bundle plugin list 2>/dev/null`
     if plugin_list.include?("gem-skill")
       say "gem-skill is already registered as a Bundler plugin."
-      return
+      return true
     end
 
     say "Registering gem-skill as a Bundler plugin..."
     if system("bundle", "plugin", "install", "gem-skill")
       say "Done. Use 'bundle skill install' in any project."
+      true
     else
       alert_error "Failed. Try running manually: bundle plugin install gem-skill"
+      false
     end
+  end
+
+  def router_skill_source
+    File.join(Gem::Skill::ROUTER_SKILL_DIR, "SKILL.md")
   end
 
   # Copy the bundled '#{Gem::Skill::ROUTER_SKILL_NAME}' skill into the default
   # skill root of each detected assistant, so it can discover cached gem skills.
+  # False only when the bundled skill is missing; finding no assistant is not
+  # an error.
   def install_router_skill
-    source = File.join(Gem::Skill::ROUTER_SKILL_DIR, "SKILL.md")
+    source = router_skill_source
     unless File.exist?(source)
       alert_error "Router skill not found at #{source}"
-      return
+      return false
     end
 
     say "Installing the '#{Gem::Skill::ROUTER_SKILL_NAME}' skill so assistants can find cached gem skills:"
@@ -307,9 +318,10 @@ class Gem::Commands::SkillCommand < Gem::Command
       installed += 1
     end
 
-    return unless installed.zero?
-
-    say "  No assistant directories detected. Create ~/.claude or ~/.codex, then re-run 'gem skill setup'."
+    if installed.zero?
+      say "  No assistant directories detected. Create ~/.claude or ~/.codex, then re-run 'gem skill setup'."
+    end
+    true
   end
 
   def cmd_purge

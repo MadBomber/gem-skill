@@ -152,6 +152,10 @@ gem's cached `SKILL.md` (resolving the version from `Gemfile.lock` or the
 installed gem). Re-run `gem skill setup` after upgrading gem-skill to refresh the
 copy. See [Installation](../installation.md) for details.
 
+Both steps always run. The command exits `1` if either fails (the Bundler
+plugin could not be registered, or the bundled router skill is missing), and
+`0` otherwise, including when no assistant home directory was detected.
+
 ---
 
 ### `gem skill list`

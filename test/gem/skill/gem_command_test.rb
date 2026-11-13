@@ -464,6 +464,70 @@ class GemCommandTest < Minitest::Test
     end
   end
 
+  # --- cmd_setup exit status ---
+
+  def test_register_bundler_plugin_true_when_already_registered
+    @cmd.stub(:`, "gem-skill (0.1.0)\n") do
+      @cmd.stub(:system, ->(*) { flunk "must not reinstall a registered plugin" }) do
+        assert @cmd.send(:register_bundler_plugin)
+      end
+    end
+  end
+
+  def test_register_bundler_plugin_true_when_install_succeeds
+    @cmd.stub(:`, "") do
+      @cmd.stub(:system, true) { assert @cmd.send(:register_bundler_plugin) }
+    end
+  end
+
+  def test_register_bundler_plugin_false_when_install_fails
+    @cmd.stub(:`, "") do
+      @cmd.stub(:system, nil) { refute @cmd.send(:register_bundler_plugin) }
+    end
+    assert_match "bundle plugin install gem-skill", @errors.string
+  end
+
+  def test_install_router_skill_false_when_source_missing
+    @cmd.stub(:router_skill_source, File.join(@tmpdir, "missing", "SKILL.md")) do
+      refute @cmd.send(:install_router_skill)
+    end
+    assert_match "Router skill not found", @errors.string
+  end
+
+  def test_install_router_skill_true_when_no_assistants_detected
+    Dir.mktmpdir do |home|
+      with_env("HOME", home) { assert @cmd.send(:install_router_skill) }
+    end
+  end
+
+  def test_setup_exits_1_but_still_installs_router_when_plugin_fails
+    Dir.mktmpdir do |home|
+      with_env("HOME", home) do
+        FileUtils.mkdir_p(File.join(home, ".claude"))
+        @cmd.stub(:register_bundler_plugin, false) do
+          err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_setup) }
+          assert_equal 1, err.exit_code
+        end
+        assert File.exist?(File.join(home, ".claude", "skills", "ruby-gem-skills", "SKILL.md"))
+      end
+    end
+  end
+
+  def test_setup_exits_1_when_router_skill_fails
+    @cmd.stub(:register_bundler_plugin, true) do
+      @cmd.stub(:install_router_skill, false) do
+        err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_setup) }
+        assert_equal 1, err.exit_code
+      end
+    end
+  end
+
+  def test_setup_exits_0_when_both_steps_succeed
+    @cmd.stub(:register_bundler_plugin, true) do
+      @cmd.stub(:install_router_skill, true) { @cmd.send(:cmd_setup) } # must not raise
+    end
+  end
+
   private
 
   def with_env(key, value)
