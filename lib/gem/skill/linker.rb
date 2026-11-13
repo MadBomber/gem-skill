@@ -45,14 +45,16 @@ module Gem::Skill
       File.unlink(link_path) if File.symlink?(link_path)
     end
 
+    # Symlinks whose names are not valid gem names were not created by gem-skill
+    # and are left alone.
     def self.linked_gems(project_root = Dir.pwd)
       dir = skills_dir(project_root)
       return [] unless Dir.exist?(dir)
 
       Dir.glob(File.join(dir, "*")).filter_map do |path|
-        next unless File.symlink?(path)
+        gem_name = File.basename(path)
+        next unless File.symlink?(path) && Validation.valid_gem_name?(gem_name)
 
-        gem_name   = File.basename(path)
         target_dir = File.readlink(path)
         version    = target_dir.match(%r{/([^/]+)$})&.captures&.first
         skill_file = File.join(target_dir, "SKILL.md")

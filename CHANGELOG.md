@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- Stray non-gem entries no longer crash cache listing or link pruning. A `.DS_Store` in the skills cache (at the root or inside a gem folder) made `gem skill list` raise `Invalid gem name`/`Invalid gem version`, and a broken non-gem symlink in the project skills dir made `bundle skill install`/`refresh` raise at the prune step. `Cache.all_gems`, `Cache.versions` and `Linker.linked_gems` now skip entries that are not valid gem names or versions, so prune also leaves a user's own links alone. (#16)
 - `docs/cache.md` and `docs/how-it-works.md` now describe the `verification` metadata and the `Verifier::Result` / `Runner::Result` fields the code actually writes; they still listed the removed `used_source_code`, `source`, `change_count` and `changes` fields and `Fetcher#source_manifest`. (#14)
 - `bundle skill` no longer skips gems from a `git:` source. Bundler lists them as `foo!` in `DEPENDENCIES`; `Lockfile.parse` now strips the `!` for names found under a `GIT` section, so they match their spec. The project's own `path:` gem stays skipped. (#8)
 - `ollama/...` models can now be configured: `OLLAMA_API_BASE` and `OLLAMA_API_KEY` are applied to RubyLLM's `ollama_api_base` and `ollama_api_key`. (#15)
