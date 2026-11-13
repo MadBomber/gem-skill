@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `gem install --with-skill` now streams the generation request, as `gem skill install` and `bundle skill install` do, so slow local models no longer hit `Net::ReadTimeout` before the reply starts. (#33)
 - `gem skill setup` now exits `1` when registering the Bundler plugin fails or the bundled router skill is missing, instead of always exiting `0`. A failed plugin registration no longer stops it from installing the router skill. Finding no assistant directory is still a success. (#29)
 - `--max-tokens` and `GEMSKIL_MAX_TOKENS` now cap the verify pass (`--verify` and `gem skill verify`) as well as generation; verification previously sent no output limit.
 - `gem skill` now rejects a non-numeric `--max-tokens` or `--temperature` value with an error, as `bundle skill` does, instead of silently sending `0` / `0.0`. (#18)
