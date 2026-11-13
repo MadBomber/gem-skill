@@ -70,12 +70,13 @@ module Gem::Skill
       def changed? = changed
     end
 
-    attr_reader :gem_name, :version, :model
+    attr_reader :gem_name, :version, :model, :max_tokens
 
-    def initialize(gem_name, version, model: Generator::DEFAULT_MODEL)
-      @gem_name = gem_name
-      @version  = version
-      @model    = model
+    def initialize(gem_name, version, model: Generator::DEFAULT_MODEL, max_tokens: Generator::MAX_TOKENS)
+      @gem_name   = gem_name
+      @version    = version
+      @model      = model
+      @max_tokens = max_tokens
     end
 
     # Verify skill_content against the gem source. Returns a Result.
@@ -103,7 +104,9 @@ module Gem::Skill
 
     def build_chat
       model_id, provider = Gem::Skill.parse_model(model)
-      RubyLLM.chat(model: model_id, provider: provider).with_instructions(SYSTEM_INSTRUCTIONS)
+      RubyLLM.chat(model: model_id, provider: provider)
+             .with_max_output_tokens(max_tokens)
+             .with_instructions(SYSTEM_INSTRUCTIONS)
     end
 
     def format_prompt(skill_content, source)

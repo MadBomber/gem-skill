@@ -413,6 +413,18 @@ class GemCommandTest < Minitest::Test
     end
   end
 
+  def test_cmd_verify_forwards_max_tokens
+    pre_cache("my_gem", "1.0.0")
+    set_args("my_gem")
+    set_option(:max_tokens, 1_500)
+    captured = {}
+    install  = ->(*, **kwargs) { Gem::Skill::Runner::Result.success.tap { captured.merge!(kwargs) } }
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, install) { @cmd.send(:cmd_verify) }
+    end
+    assert_equal 1_500, captured[:max_tokens]
+  end
+
   # --- install_router_skill (gem skill setup) ---
 
   def test_router_skill_template_exists_and_is_valid

@@ -100,6 +100,22 @@ class RunnerTest < Minitest::Test
     assert_equal 65_536, captured[:max_tokens]
   end
 
+  def test_max_tokens_forwarded_to_verifier
+    captured = {}
+    obj      = Object.new
+    clean    = verifier_result(content: "old skill", changed: false, verifiable: true, model: "m")
+    obj.define_singleton_method(:verify) { |_| clean }
+
+    stub_linker do
+      Gem::Skill::Verifier.stub(:new, ->(*, **kwargs) { obj.tap { captured.merge!(kwargs) } }) do
+        Gem::Skill::Runner.install_skill(@gem_name, @version, fake_spinner,
+                                         force: false, model: "m", verify: true, max_tokens: 4_000)
+      end
+    end
+
+    assert_equal 4_000, captured[:max_tokens]
+  end
+
   def test_temperature_forwarded_to_generator
     Gem::Skill::Cache.purge(@gem_name, @version)
     captured = {}

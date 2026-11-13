@@ -120,7 +120,7 @@ All environment variables and their defaults:
 | `GEMSKILL_DIR` | `~/.gem/skills` | Root directory for the global skill cache |
 | `GEMSKILL_PROJECT_DIR` | `.claude/skills` | Project-relative directory where `bundle skill` writes symlinks |
 | `GEMSKILL_MODEL` | `gpt-5.5` | LLM model used when generating skills |
-| `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated skill file |
+| `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated or verified skill file |
 | `GEMSKILL_TEMPERATURE` | `0.2` | Sampling temperature (skipped for reasoning models that reject it) |
 | `GEMSKILL_REQUEST_TIMEOUT` | `900` | HTTP timeout in seconds for each LLM request |
 | `ANTHROPIC_API_KEY` | _(none)_ | API key for Anthropic / Claude models |

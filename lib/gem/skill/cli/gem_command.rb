@@ -149,7 +149,8 @@ class Gem::Commands::SkillCommand < Gem::Command
       terminate_interaction 1
     end
 
-    model = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
+    model      = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
+    max_tokens = options[:max_tokens] || Gem::Skill::Generator::MAX_TOKENS
 
     multi = TTY::Spinner::Multi.new(
       "[:spinner] Verifying skills (#{model})",
@@ -163,7 +164,9 @@ class Gem::Commands::SkillCommand < Gem::Command
       gem_names.each do |gem_name|
         spinner = multi.register("  [:spinner] :title")
         spinner.update(title: gem_name)
-        barrier.async { results << verify_one(gem_name, spinner: spinner, model: model) }
+        barrier.async do
+          results << verify_one(gem_name, spinner: spinner, model: model, max_tokens: max_tokens)
+        end
       end
       barrier.wait
     ensure
@@ -189,7 +192,7 @@ class Gem::Commands::SkillCommand < Gem::Command
 
   # Verify an already-cached skill in place. Never generates: the gem must be
   # installed (verification needs its source) and the skill must already be cached.
-  def verify_one(gem_name, spinner:, model:)
+  def verify_one(gem_name, spinner:, model:, max_tokens: Gem::Skill::Generator::MAX_TOKENS)
     spinner.auto_spin
     version = resolve_installed_version(gem_name)
     if version.nil?
@@ -205,7 +208,8 @@ class Gem::Commands::SkillCommand < Gem::Command
       return Gem::Skill::Runner::Result.failure("not cached")
     end
 
-    result = Gem::Skill::Runner.install_skill(gem_name, version, spinner, force: false, model: model, verify: true)
+    result = Gem::Skill::Runner.install_skill(gem_name, version, spinner,
+                                              force: false, model: model, verify: true, max_tokens: max_tokens)
     alert_error "#{gem_name}: #{result.error}" if result.error
     result
   rescue Gem::Skill::Error => e
