@@ -52,7 +52,8 @@ class Gem::Commands::SkillCommand < Gem::Command
                 mismatches (does not generate; errors if not cached).
       list      Show all skills in the global cache (~/.gem/skills).
       purge     Remove a specific cached version.
-      setup     Register gem-skill as a Bundler plugin (run once after install).
+      setup     Register gem-skill as a Bundler plugin and install the router
+                skill (run after install and after each upgrade).
 
       Use 'bundle skill install' in any project after running 'gem skill setup'.
     DESC
@@ -116,7 +117,7 @@ class Gem::Commands::SkillCommand < Gem::Command
       barrier.stop
     end
 
-    say "Tip: run 'bundle plugin install gem-skill' to enable 'bundle skill'."
+    say "Tip: run 'gem skill setup' to enable 'bundle skill' and install the router skill."
 
     fixed = results.count(&:verify_fixed)
     say "Verify corrected #{fixed} skill(s) against gem source." if verify && fixed.positive?
