@@ -34,7 +34,8 @@ module Gem::Skill
     end
 
     # Remove a leading frontmatter block (if any), including an empty one, and
-    # return the body. The block closes at the first line that is just `---`.
+    # return the body. The block closes at the first `---` line
+    # (trailing spaces, tabs or CR allowed).
     def strip(content)
       content.to_s.sub(/\A\s*---[ \t\r]*\n.*?^---[ \t\r]*$/m, "").lstrip
     end
