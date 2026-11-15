@@ -52,7 +52,8 @@ class Gem::Commands::SkillCommand < Gem::Command
                 mismatches (does not generate; errors if not cached).
       list      Show all skills in the global cache (~/.gem/skills).
       purge     Remove a specific cached version.
-      setup     Register gem-skill as a Bundler plugin (run once after install).
+      setup     Register gem-skill as a Bundler plugin and install the router
+                skill (run once after install).
 
       Use 'bundle skill install' in any project after running 'gem skill setup'.
     DESC
