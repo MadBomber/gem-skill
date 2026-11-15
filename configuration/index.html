@@ -1339,12 +1339,13 @@ invocation only. Use a <code>lms/</code>, <code>apfel/</code>, or <code>ollama/<
 </tbody>
 </table>
 <p>RubyLLM's own default (300 seconds) suits hosted APIs; gem-skill raises it
-because a local model can be slow to respond. <code>gem skill install</code> and
-<code>bundle skill</code> stream generation, so the timeout mostly covers the wait before
-output starts. <code>--verify</code>, <code>gem skill verify</code> and <code>gem install --with-skill</code>
-wait for the whole response, so they need the most headroom. RubyLLM retries
-a request that times out before any output arrives (3 retries by default), so
-a stuck request can take several times this long to fail.</p>
+because a local model can be slow to respond. Every <code>gem skill</code>, <code>bundle skill</code>
+and <code>gem install --with-skill</code> request streams, so the timeout covers the wait
+before output starts and any pause between chunks, not the whole reply. The
+verify pass (<code>--verify</code>, <code>gem skill verify</code>) sends up to 150,000 characters of
+the gem's <code>lib/</code> source, so its first token can be slow to arrive. RubyLLM
+retries a request that times out before any output arrives (3 retries by
+default), so a stuck request can take several times this long to fail.</p>
 <h2 id="recommended-shell-configuration">Recommended shell configuration<a class="headerlink" href="#recommended-shell-configuration" title="Permanent link">&para;</a></h2>
 <p>Add to your <code>~/.zshrc</code> or <code>~/.bashrc</code>:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANTHROPIC_API_KEY</span><span class="o">=</span><span class="s2">"sk-ant-..."</span>
