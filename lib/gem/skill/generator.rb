@@ -10,7 +10,7 @@ require "ruby_llm/providers/apfel"
 module Gem::Skill
   # Drives the LLM pipeline: fetches docs, generates a SKILL.md, caches it.
   class Generator
-    DEFAULT_MODEL       = ENV.fetch("GEMSKILL_MODEL", "gpt-5.5")
+    DEFAULT_MODEL       = Env.string("GEMSKILL_MODEL", "gpt-5.5")
     MAX_TOKENS          = Env.integer("GEMSKIL_MAX_TOKENS", 32_767)
     DEFAULT_TEMPERATURE = Env.float("GEMSKILL_TEMPERATURE", 0.2)
     MAX_SOURCE_CHARS    = 60_000  # guard against enormous READMEs blowing the context window
