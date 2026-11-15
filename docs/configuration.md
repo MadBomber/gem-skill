@@ -161,7 +161,7 @@ RubyLLM's own default (300 seconds) suits hosted APIs; gem-skill raises it
 because a local model can be slow to respond. Every `gem skill`, `bundle skill`
 and `gem install --with-skill` request streams, so the timeout mostly covers
 the wait before output starts. The verify pass
-(`--verify`, `gem skill verify`) sends the gem's whole source, so it waits
+(`--verify`, `gem skill verify`) sends the gem's source code, so it waits
 longest for its first token. RubyLLM retries a request that times out before
 any output arrives (3 retries by default), so a stuck request can take several
 times this long to fail.
