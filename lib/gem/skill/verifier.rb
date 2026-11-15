@@ -87,7 +87,10 @@ module Gem::Skill
         return Result.new(content: skill_content, changed: false, verifiable: false, model: model)
       end
 
-      raw       = build_chat.ask(format_prompt(skill_content, source)).content.to_s
+      # Stream and discard chunks, as Runner does: a non-streaming request sends
+      # nothing until generation completes, so a slow local model trips
+      # Net::ReadTimeout. The returned message still carries the full content.
+      raw       = build_chat.ask(format_prompt(skill_content, source)) { |_chunk| }.content.to_s
       # Re-apply frontmatter to both sides so the diff compares like-for-like and
       # the stored skill always keeps valid frontmatter, even if the model dropped it.
       original  = Frontmatter.build(gem_name, version, skill_content)

@@ -81,6 +81,23 @@ class VerifierTest < Minitest::Test
     assert_equal 2_048, captured_max_tokens(custom)
   end
 
+  # A non-streaming request sends nothing until generation finishes, so a slow
+  # local model trips Net::ReadTimeout. Verify sends the whole gem source, so it
+  # must stream like Runner and --with-skill do.
+  def test_verify_streams_the_request
+    streamed = nil
+    reply    = FakeResponse.new(wrap(ORIGINAL))
+    chat     = responding_chat(reply.content)
+    chat.define_singleton_method(:ask) do |_, &blk|
+      streamed = !blk.nil?
+      reply
+    end
+    stub_fetcher(source: SOURCE) do
+      RubyLLM.stub(:chat, chat) { verifier.verify(ORIGINAL) }
+    end
+    assert streamed, "verify must pass a block to ask so the request streams"
+  end
+
   def test_wraps_ruby_llm_error
     stub_fetcher(source: SOURCE) do
       fake_chat = Object.new
