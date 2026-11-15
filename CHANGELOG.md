@@ -7,6 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - Validate gem names and versions before building cache paths. A gem name must be a plain RubyGems name and a version must parse as a `Gem::Version`; malformed values from a `Gemfile.lock` are dropped by `Lockfile.parse`, and the `Cache`/`Linker` path builders raise `Gem::Skill::Error` for them.
+- `Generator::MAX_TOKENS` constant reads from `GEMSKIL_MAX_TOKENS` and is applied with `with_max_output_tokens` to every `RubyLLM.chat` call (generation and verification), covering both streaming and non-streaming paths.
+- `Generator#initialize` now accepts `max_tokens:` and `temperature:` keywords so callers can override the token cap and sampling temperature per-instance without touching the environment.
+- `Generator` sets `with_temperature` only when the model's RubyLLM metadata does not mark temperature unsupported, avoiding API errors on reasoning models.
+- `Runner.install_skill` accepts and forwards `max_tokens:` and `temperature:` to `Generator.new`.
+- `README.md` Configuration section now lists all environment variables (gem-skill-specific and provider API keys) in a single reference table.
+- `docs/configuration.md` documents the new `GEMSKIL_MAX_TOKENS` and `GEMSKILL_TEMPERATURE` variables alongside the existing `GEMSKILL_MODEL` entry.
+- `docs/commands/gem-skill.md` and `docs/commands/bundle-skill.md` option tables updated with `--max-tokens` and `--temperature`.
+- Documented local-model support (`lms/` and `apfel/` model prefixes) and `GEMSKILL_REQUEST_TIMEOUT` in the README and `docs/configuration.md`.
+- `Verifier#initialize` now accepts a `max_tokens:` keyword (default `Generator::MAX_TOKENS`), so the verify pass is capped like generation. (#26)
 
 ### Added
 - Bundled `ruby-gem-skills` "router" skill (shipped at the gem root) that teaches assistants how to find cached gem skills in `~/.gem/skills` — a directory neither Claude Code nor Codex scans by default. `gem skill setup` now also copies this skill into each detected assistant's default root (`~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`), creating none that don't already exist. `Gem::Skill::ROUTER_SKILL_NAME` / `ROUTER_SKILL_DIR` locate the bundled template.
@@ -15,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `GEMSKILL_TEMPERATURE` environment variable (default `0.2`) — sampling temperature for generation. Lower values produce more consistent, less variable output, appropriate for factual reference docs. Applied only to models that support a temperature parameter; reasoning models (e.g. `gpt-5.5`) report `temperature: false` in their RubyLLM metadata and the value is silently skipped for them.
 - `--temperature TEMP` CLI flag on `gem skill install` — overrides `GEMSKILL_TEMPERATURE` for a single invocation.
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
+- `Gem::Skill::Env` module (`Env.integer`, `Env.float`) — reads numeric settings from environment variables, warning and keeping the default when a value does not parse. (#38)
 
 ### Fixed
 - `gem skill install` now ends with a tip to run `gem skill setup`, which the README and docs recommend and which also installs the router skill; `docs/how-it-works.md` now leads with it too. It used to suggest `bundle plugin install gem-skill`.
@@ -41,16 +51,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `docs/installation.md` now gives the Ruby requirement as >= 3.4, matching the gemspec (it said >= 3.2.0).
 - The "Cache layout" link in `docs/commands/gem-skill.md` now points at `../cache.md#metadatajson`; the broken relative link made `mkdocs build --strict` abort.
 - `bundle skill install` and `refresh` with no `Gemfile.lock` now print `gem-skill: Gemfile.lock not found at Gemfile.lock` and exit `1`, instead of Bundler's error-report template and a backtrace. (#28)
-
-### Changed
-- `Generator::MAX_TOKENS` constant reads from `GEMSKIL_MAX_TOKENS` and is passed via `with_params` to every `RubyLLM.chat` call, covering both streaming and non-streaming paths.
-- `Generator#initialize` now accepts `max_tokens:` and `temperature:` keywords so callers can override the token cap and sampling temperature per-instance without touching the environment.
-- `Generator` sets `with_temperature` only when the model's RubyLLM metadata does not mark temperature unsupported, avoiding API errors on reasoning models.
-- `Runner.install_skill` accepts and forwards `max_tokens:` and `temperature:` to `Generator.new`.
-- `README.md` Configuration section now lists all environment variables (gem-skill-specific and provider API keys) in a single reference table.
-- `docs/configuration.md` documents the new `GEMSKIL_MAX_TOKENS` and `GEMSKILL_TEMPERATURE` variables alongside the existing `GEMSKILL_MODEL` entry.
-- `docs/commands/gem-skill.md` and `docs/commands/bundle-skill.md` option tables updated with `--max-tokens` and `--temperature`.
-- Documented local-model support (`lms/` and `apfel/` model prefixes) and `GEMSKILL_REQUEST_TIMEOUT` in the README and `docs/configuration.md`.
 
 ## [0.2.0] - 2026-06-19
 
