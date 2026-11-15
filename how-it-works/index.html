@@ -1268,7 +1268,7 @@ naming convention. Prepends <code>Gem::Skill::InstallSkillOption</code> onto
 into a pending list, and <code>at_exit</code> fires <code>generate_pending_skills</code> to process
 them concurrently.</p>
 <h3 id="bundler-plugin-pluginsrb">Bundler plugin (<code>plugins.rb</code>)<a class="headerlink" href="#bundler-plugin-pluginsrb" title="Permanent link">&para;</a></h3>
-<p>Registered via <code>bundle plugin install gem-skill</code> (or <code>gem skill setup</code>).
+<p>Registered by <code>gem skill setup</code> (or manually with <code>bundle plugin install gem-skill</code>).
 Bundler's plugin API loads <code>plugins.rb</code> and discovers the
 <code>Gem::Skill::BundlerPlugin</code> class, which routes <code>bundle skill SUBCOMMAND</code> to
 <code>Gem::Skill::BundlerCommand</code>.</p>
