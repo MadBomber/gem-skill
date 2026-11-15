@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- `bundle skill` no longer drops or mis-versions platform-specific gems. `Lockfile.parse` now strips the platform suffix from a spec version (`0.8.0-x86_64-linux` → `0.8.0`) the way Bundler does, so `x86_64`/`musl` gems are no longer discarded and `arm64-darwin` gems are cached under their plain version. (#47)
 - `gem skill install` now ends with a tip to run `gem skill setup`, which the README and docs recommend and which also installs the router skill; `docs/how-it-works.md` now leads with it too. It used to suggest `bundle plugin install gem-skill`.
 - The verify pass (`--verify`, `gem skill verify`) now streams its request, like generation does, so a slow local model no longer hits `Net::ReadTimeout` just because the whole reply takes longer than `GEMSKILL_REQUEST_TIMEOUT`. (#46)
 - A generated `SKILL.md` that opens with an empty `---`/`---` frontmatter block now gets that block replaced, instead of a second frontmatter stacked on top of it, and the body before a later `---` rule is no longer dropped with it.
