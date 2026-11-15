@@ -81,6 +81,20 @@ class VerifierTest < Minitest::Test
     assert_equal 2_048, captured_max_tokens(custom)
   end
 
+  # Non-streaming requests trip Net::ReadTimeout on slow local models.
+  def test_verify_streams_the_request
+    ask_got_block = nil
+    chat = responding_chat(ORIGINAL)
+    chat.define_singleton_method(:ask) do |_, &blk|
+      ask_got_block = !blk.nil?
+      FakeResponse.new(ORIGINAL)
+    end
+    stub_fetcher(source: SOURCE) do
+      RubyLLM.stub(:chat, chat) { verifier.verify(ORIGINAL) }
+    end
+    assert ask_got_block
+  end
+
   def test_wraps_ruby_llm_error
     stub_fetcher(source: SOURCE) do
       fake_chat = Object.new
