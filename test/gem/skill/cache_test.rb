@@ -41,6 +41,13 @@ class CacheTest < Minitest::Test
     end
   end
 
+  def test_versions_sorts_numerically
+    with_tmp_cache do
+      %w[0.10.0 0.9.0 1.10.0 1.9.0].each { |v| Gem::Skill::Cache.store("my_gem", v, "skill") }
+      assert_equal %w[0.9.0 0.10.0 1.9.0 1.10.0], Gem::Skill::Cache.versions("my_gem")
+    end
+  end
+
   def test_purge_removes_version_dir
     with_tmp_cache do
       Gem::Skill::Cache.store("my_gem", "1.0.0", "content")
