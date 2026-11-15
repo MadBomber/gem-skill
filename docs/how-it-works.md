@@ -204,7 +204,7 @@ them concurrently.
 
 ### Bundler plugin (`plugins.rb`)
 
-Registered via `bundle plugin install gem-skill` (or `gem skill setup`).
+Registered by `gem skill setup` (or manually with `bundle plugin install gem-skill`).
 Bundler's plugin API loads `plugins.rb` and discovers the
 `Gem::Skill::BundlerPlugin` class, which routes `bundle skill SUBCOMMAND` to
 `Gem::Skill::BundlerCommand`.

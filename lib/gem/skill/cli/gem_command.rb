@@ -116,7 +116,7 @@ class Gem::Commands::SkillCommand < Gem::Command
       barrier.stop
     end
 
-    say "Tip: run 'gem skill setup' to enable 'bundle skill'."
+    say "Tip: run 'gem skill setup' to enable 'bundle skill' and install the router skill."
 
     fixed = results.count(&:verify_fixed)
     say "Verify corrected #{fixed} skill(s) against gem source." if verify && fixed.positive?
