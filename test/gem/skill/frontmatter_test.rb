@@ -92,8 +92,7 @@ class FrontmatterTest < Minitest::Test
 
   def test_build_replaces_empty_frontmatter
     out = FM.build("tty-spinner", "0.9.3", "---\n---\n\n#{BODY}")
-    assert_equal FM.build("tty-spinner", "0.9.3", BODY), out
-    assert_equal 2, out.scan(/^---\s*$/).count, "exactly one frontmatter block (two --- delimiters)"
+    assert_equal FM.build("tty-spinner", "0.9.3", BODY), out, "the empty block is replaced, not stacked under a new one"
   end
 
   # --- strip ---
