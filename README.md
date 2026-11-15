@@ -82,7 +82,7 @@ gem skill setup
 ```
 
 `gem install` gives you the `gem skill` subcommand.
-`gem skill setup` registers gem-skill as a Bundler plugin, enabling `bundle skill` in any project.
+`gem skill setup` registers gem-skill as a Bundler plugin, enabling `bundle skill` in any project, and installs the router skill.
 
 You only need to run `gem skill setup` once per machine. Alternatively, you can
 add the plugin directly to a project's `Gemfile`:

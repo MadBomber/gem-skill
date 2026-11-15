@@ -90,7 +90,7 @@ class GemCommandTest < Minitest::Test
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       stub_generator([]) { @cmd.send(:cmd_install) } # must not raise
     end
-    assert_match "Tip:", @output.string
+    assert_match "Tip: run 'gem skill setup' to enable 'bundle skill' and install the router skill.", @output.string
   end
 
   def test_install_exits_1_when_a_gem_fails
@@ -170,7 +170,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_equal %w[gem_a gem_b gem_c], generated
-    assert_match "Tip:", @output.string
+    assert_match "Tip: run 'gem skill setup' to enable 'bundle skill' and install the router skill.", @output.string
   end
 
   def test_install_continues_after_one_gem_fails
