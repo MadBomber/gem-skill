@@ -90,6 +90,47 @@ class FrontmatterTest < Minitest::Test
     assert_equal 2, out.scan(/^---\s*$/).count, "exactly one frontmatter block (two --- delimiters)"
   end
 
+  def test_build_replaces_empty_frontmatter
+    out = FM.build("tty-spinner", "0.9.3", "---\n---\n\n#{BODY}")
+    assert_equal FM.build("tty-spinner", "0.9.3", BODY), out, "empty block replaced, not stacked"
+  end
+
+  # --- strip ---
+
+  def test_strip_removes_frontmatter_with_fields
+    assert_equal "Body", FM.strip("---\nname: x\n---\nBody")
+  end
+
+  def test_strip_removes_empty_frontmatter
+    assert_equal "Body", FM.strip("---\n---\nBody")
+  end
+
+  def test_strip_empty_frontmatter_keeps_later_rules
+    assert_equal "Body\n---\nmore", FM.strip("---\n---\nBody\n---\nmore")
+  end
+
+  def test_strip_removes_empty_frontmatter_at_end_of_string
+    assert_equal "", FM.strip("---\n---")
+  end
+
+  def test_strip_removes_crlf_frontmatter
+    assert_equal "Body", FM.strip("---\r\nname: x\r\n---\r\nBody")
+  end
+
+  def test_strip_allows_trailing_whitespace_on_delimiters
+    assert_equal "Body", FM.strip("--- \nname: x\n--- \t\nBody")
+  end
+
+  def test_build_replaces_empty_frontmatter_before_a_later_rule
+    body = "#{BODY}\n---\nmore"
+    out  = FM.build("tty-spinner", "0.9.3", "---\n---\n#{body}")
+    assert_equal FM.build("tty-spinner", "0.9.3", body), out
+  end
+
+  def test_strip_leaves_content_without_frontmatter
+    assert_equal "Body\n---\nmore", FM.strip("Body\n---\nmore")
+  end
+
   def test_yaml_quote_escapes_quotes_and_backslashes
     assert_equal %("a \\"b\\" c"), FM.yaml_quote('a "b" c')
     assert_equal %("a\\\\b"), FM.yaml_quote('a\\b')
