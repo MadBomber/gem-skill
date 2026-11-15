@@ -83,17 +83,16 @@ class VerifierTest < Minitest::Test
 
   # Non-streaming requests trip Net::ReadTimeout on slow local models.
   def test_verify_streams_the_request
-    streamed = nil
-    content  = wrap(ORIGINAL)
-    chat     = responding_chat(content)
+    ask_got_block = nil
+    chat = responding_chat(ORIGINAL)
     chat.define_singleton_method(:ask) do |_, &blk|
-      streamed = !blk.nil?
-      FakeResponse.new(content)
+      ask_got_block = !blk.nil?
+      FakeResponse.new(ORIGINAL)
     end
     stub_fetcher(source: SOURCE) do
       RubyLLM.stub(:chat, chat) { verifier.verify(ORIGINAL) }
     end
-    assert streamed, "verify must pass a block to ask so the request streams"
+    assert ask_got_block
   end
 
   def test_wraps_ruby_llm_error
