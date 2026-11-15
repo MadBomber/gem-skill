@@ -417,6 +417,17 @@ class GemCommandTest < Minitest::Test
     end
   end
 
+  def test_verify_one_does_not_link_into_the_current_directory
+    pre_cache("my_gem", "1.0.0")
+    ok = Gem::Skill::Verifier::Result.new(content: "# skill", changed: false, verifiable: true, model: "m")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_verifier(ok) do
+        assert @cmd.send(:verify_one, "my_gem", spinner: fake_spinner, model: "m").ok?
+      end
+    end
+    refute File.symlink?(File.join(Gem::Skill::Linker.skills_dir, "my_gem"))
+  end
+
   def test_cmd_verify_exits_with_fixed_code_when_corrections_applied
     pre_cache("my_gem", "1.0.0")
     set_args("my_gem")
