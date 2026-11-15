@@ -22,6 +22,14 @@ class ValidationTest < Minitest::Test
     assert Gem::Skill::Validation.valid_version?("0.1.0.beta3")
   end
 
+  def test_accepts_common_versions
+    %w[1.0 0.2.2 1.0.0.pre1].each { |v| assert Gem::Skill::Validation.valid_version?(v), v }
+  end
+
+  def test_rejects_versions_with_surrounding_whitespace
+    [" ", " 1.0", "1.0 ", "1.0\n"].each { |v| refute Gem::Skill::Validation.valid_version?(v), v.inspect }
+  end
+
   def test_rejects_non_version_strings
     refute Gem::Skill::Validation.valid_version?("not a version")
     refute Gem::Skill::Validation.valid_version?("1.0/../etc")
