@@ -117,6 +117,10 @@ class FrontmatterTest < Minitest::Test
     assert_equal "Body", FM.strip("---\r\nname: x\r\n---\r\nBody")
   end
 
+  def test_strip_allows_trailing_whitespace_on_delimiters
+    assert_equal "Body", FM.strip("--- \nname: x\n--- \t\nBody")
+  end
+
   def test_build_replaces_empty_frontmatter_before_a_later_rule
     body = "#{BODY}\n---\nmore"
     assert_equal FM.build("tty-spinner", "0.9.3", body), FM.build("tty-spinner", "0.9.3", "---\n---\n#{body}")
