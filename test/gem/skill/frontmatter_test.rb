@@ -92,7 +92,7 @@ class FrontmatterTest < Minitest::Test
 
   def test_build_replaces_empty_frontmatter
     out = FM.build("tty-spinner", "0.9.3", "---\n---\n\n#{BODY}")
-    assert_equal FM.build("tty-spinner", "0.9.3", BODY), out, "the empty block is replaced, not stacked under a new one"
+    assert_equal FM.build("tty-spinner", "0.9.3", BODY), out, "empty block replaced, not stacked"
   end
 
   # --- strip ---
@@ -123,7 +123,8 @@ class FrontmatterTest < Minitest::Test
 
   def test_build_replaces_empty_frontmatter_before_a_later_rule
     body = "#{BODY}\n---\nmore"
-    assert_equal FM.build("tty-spinner", "0.9.3", body), FM.build("tty-spinner", "0.9.3", "---\n---\n#{body}")
+    out  = FM.build("tty-spinner", "0.9.3", "---\n---\n#{body}")
+    assert_equal FM.build("tty-spinner", "0.9.3", body), out
   end
 
   def test_strip_leaves_content_without_frontmatter
