@@ -109,7 +109,7 @@ method signatures, default argument values, visibility, return values, and
 behavioral claims.
 
 ```ruby
-Verifier.new(gem_name, version, model:).verify(skill_content)
+Verifier.new(gem_name, version, model:, max_tokens:).verify(skill_content)
 # => Result(content:, changed:, verifiable:, model:)
 ```
 
