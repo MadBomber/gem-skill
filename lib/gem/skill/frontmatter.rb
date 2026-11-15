@@ -34,10 +34,9 @@ module Gem::Skill
     end
 
     # Remove a leading frontmatter block (if any), including an empty one, and
-    # return the body. The lazy `??` tries the empty block first, so a later
-    # `---` rule in the body is never taken for the closing delimiter.
+    # return the body. The block closes at the first line that is just `---`.
     def strip(content)
-      content.to_s.sub(/\A\s*---\s*\n(?:.*?\n)??---\s*\n+/m, "").lstrip
+      content.to_s.sub(/\A\s*---[ \t\r]*\n.*?^---[ \t\r]*$/m, "").lstrip
     end
 
     # Gem name -> valid skill name. "ruby_llm" -> "ruby-llm", "TTY-Spinner" ->

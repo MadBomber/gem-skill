@@ -109,6 +109,19 @@ class FrontmatterTest < Minitest::Test
     assert_equal "Body\n---\nmore", FM.strip("---\n---\nBody\n---\nmore")
   end
 
+  def test_strip_removes_empty_frontmatter_at_end_of_string
+    assert_equal "", FM.strip("---\n---")
+  end
+
+  def test_strip_removes_crlf_frontmatter
+    assert_equal "Body", FM.strip("---\r\nname: x\r\n---\r\nBody")
+  end
+
+  def test_build_replaces_empty_frontmatter_before_a_later_rule
+    body = "#{BODY}\n---\nmore"
+    assert_equal FM.build("tty-spinner", "0.9.3", body), FM.build("tty-spinner", "0.9.3", "---\n---\n#{body}")
+  end
+
   def test_strip_leaves_content_without_frontmatter
     assert_equal "Body\n---\nmore", FM.strip("Body\n---\nmore")
   end
