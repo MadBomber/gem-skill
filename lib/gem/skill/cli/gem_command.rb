@@ -84,7 +84,7 @@ class Gem::Commands::SkillCommand < Gem::Command
   private
 
   def cmd_install
-    gem_names = options[:args].dup
+    gem_names = options[:args].uniq
     options[:args].clear
 
     if gem_names.empty?
@@ -142,7 +142,7 @@ class Gem::Commands::SkillCommand < Gem::Command
   end
 
   def cmd_verify
-    gem_names = options[:args].dup
+    gem_names = options[:args].uniq
     options[:args].clear
 
     if gem_names.empty?

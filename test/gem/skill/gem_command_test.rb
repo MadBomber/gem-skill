@@ -121,6 +121,29 @@ class GemCommandTest < Minitest::Test
     end
   end
 
+  def test_install_processes_a_repeated_gem_name_once
+    set_args("my_gem", "my_gem")
+    calls = []
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, ->(name, *, **) { calls << name; Gem::Skill::Runner::Result.success }) do
+        @cmd.send(:cmd_install)
+      end
+    end
+    assert_equal %w[my_gem], calls
+  end
+
+  def test_verify_processes_a_repeated_gem_name_once
+    pre_cache("my_gem", "1.0.0")
+    set_args("my_gem", "my_gem")
+    calls = []
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, ->(name, *, **) { calls << name; Gem::Skill::Runner::Result.success }) do
+        @cmd.send(:cmd_verify)
+      end
+    end
+    assert_equal %w[my_gem], calls
+  end
+
   def test_install_auto_installs_when_gem_not_present
     set_args("new_gem")
     generated = []
