@@ -74,7 +74,7 @@ module Gem::Skill
       dir = File.join(ROOT, gem_name)
       return [] unless Dir.exist?(dir)
 
-      Dir.children(dir).select { |entry| Validation.valid_version?(entry) }.sort
+      Dir.children(dir).select { |entry| Validation.valid_version?(entry) }.sort_by { Gem::Version.new(it) }
     end
 
     # Stray entries such as Finder's .DS_Store are not gems and are skipped.
