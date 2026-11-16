@@ -45,21 +45,19 @@ multi = TTY::Spinner::Multi.new("[:spinner] Installing skill", format: :dots, ou
 sp    = multi.register("  [:spinner] :title")
 sp.update(title: "#{GEM_NAME} #{VERSION}")
 
-err = nil
+result = nil
 Async do
   barrier = Async::Barrier.new
   barrier.async do
     sp.auto_spin
-    err = Gem::Skill::Runner.install_skill(GEM_NAME, VERSION, sp, force: true, model: MODEL)
+    result = Gem::Skill::Runner.install_skill(GEM_NAME, VERSION, sp, force: true, model: MODEL)
   end
   barrier.wait
 ensure
   barrier.stop
 end
 
-if err
-  abort "\nRunner failed: #{err}"
-end
+abort "\nRunner failed: #{result.error}" if result&.error
 puts ""
 
 # --- Phase 3: Verify cache ---
