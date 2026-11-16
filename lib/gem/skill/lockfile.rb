@@ -29,7 +29,9 @@ module Gem::Skill
         if line.strip == "specs:"
           in_specs = true
           next
-        elsif in_specs && line =~ /\A {4}(\S+) \(([^)]+)\)/
+        # As in Bundler's LockfileParser, the version stops at the first "-";
+        # the rest is the platform (e.g. "1.6.1-x86_64-linux").
+        elsif in_specs && line =~ /\A {4}(\S+) \(([^-)]+)(?:-[^)]*)?\)/
           specs[Regexp.last_match(1)] = Regexp.last_match(2)
         elsif in_specs && line !~ /\A /
           in_specs = false

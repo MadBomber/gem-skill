@@ -4,6 +4,21 @@ require "test_helper"
 require "open3"
 
 class EnvTest < Minitest::Test
+  # --- string ---
+
+  def test_string_returns_default_when_unset
+    assert_equal "gpt-5.5", Gem::Skill::Env.string("X", "gpt-5.5", {})
+  end
+
+  def test_string_returns_default_when_blank
+    assert_equal "gpt-5.5", Gem::Skill::Env.string("X", "gpt-5.5", { "X" => "" })
+    assert_equal "gpt-5.5", Gem::Skill::Env.string("X", "gpt-5.5", { "X" => "  " })
+  end
+
+  def test_string_returns_stripped_value
+    assert_equal "lms/qwen", Gem::Skill::Env.string("X", "gpt-5.5", { "X" => " lms/qwen " })
+  end
+
   # --- integer ---
 
   def test_integer_returns_default_when_unset
@@ -75,6 +90,15 @@ class EnvTest < Minitest::Test
 
     assert status.success?, err
     assert_equal "[900, 32767, 0.2]", out
+  end
+
+  def test_blank_gemskill_model_keeps_the_default
+    script = 'require "gem/skill"; print Gem::Skill::Generator::DEFAULT_MODEL'
+    lib = File.expand_path("../../../lib", __dir__)
+    out, err, status = Open3.capture3({ "GEMSKILL_MODEL" => "" }, RbConfig.ruby, "-I", lib, "-e", script)
+
+    assert status.success?, err
+    assert_equal "gpt-5.5", out
   end
 
   private
