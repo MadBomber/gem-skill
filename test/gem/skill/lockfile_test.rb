@@ -105,4 +105,36 @@ class LockfileTest < Minitest::Test
     assert_equal "1.0.0", gems["good_gem"]
     refute gems.key?("bad_name")
   end
+
+  PLATFORM_LOCKFILE = <<~LOCKFILE
+    GEM
+      remote: https://rubygems.org/
+      specs:
+        difftastic (0.8.0-arm64-darwin)
+        difftastic (0.8.0-x86_64-linux)
+        rake (13.3.0)
+        tiktoken_ruby (0.0.11-x86_64-linux-musl)
+
+    PLATFORMS
+      arm64-darwin
+      x86_64-linux
+      x86_64-linux-musl
+
+    DEPENDENCIES
+      difftastic
+      rake
+      tiktoken_ruby
+  LOCKFILE
+
+  def test_parse_strips_the_platform_from_a_multi_platform_gem
+    assert_equal "0.8.0", Gem::Skill::Lockfile.parse(PLATFORM_LOCKFILE)["difftastic"]
+  end
+
+  def test_parse_strips_a_musl_platform
+    assert_equal "0.0.11", Gem::Skill::Lockfile.parse(PLATFORM_LOCKFILE)["tiktoken_ruby"]
+  end
+
+  def test_parse_keeps_a_plain_gem_version
+    assert_equal "13.3.0", Gem::Skill::Lockfile.parse(PLATFORM_LOCKFILE)["rake"]
+  end
 end
