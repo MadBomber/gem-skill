@@ -20,7 +20,8 @@ module Gem::Skill
 
     def self.valid_version?(version)
       version = version.to_s
-      return false if version.empty?
+      # Gem::Version.correct? tolerates surrounding whitespace; a cache path must not.
+      return false if version.empty? || version != version.strip
 
       !!Gem::Version.correct?(version)
     end
