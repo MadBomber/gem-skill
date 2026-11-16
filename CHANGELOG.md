@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `documentation_uri` and `bug_tracker_uri` gemspec metadata, so RubyGems.org links to the docs site and the issue tracker.
 
 ### Fixed
+- An empty or whitespace-only `GEMSKILL_MODEL` now falls back to the default model (`gpt-5.5`) instead of becoming the model id `""`, matching how a blank `GEMSKILL_PROJECT_DIR` is treated. (#41)
 - `Validation.valid_version?` now rejects versions with leading or trailing whitespace (`" "`, `" 1.0"`, `"1.0\n"`), which `Gem::Version.correct?` accepts and which would otherwise become padded cache directory names. (#42)
 - `gem skill install` now ends with a tip to run `gem skill setup`, which the README and docs recommend and which also installs the router skill; `docs/how-it-works.md` now leads with it too. It used to suggest `bundle plugin install gem-skill`.
 - The verify pass (`--verify`, `gem skill verify`) now streams its request, like generation does, so a slow local model no longer hits `Net::ReadTimeout` just because the whole reply takes longer than `GEMSKILL_REQUEST_TIMEOUT`. (#46)
