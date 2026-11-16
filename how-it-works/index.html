@@ -1234,13 +1234,15 @@ list or referenced explicitly before it's <em>active</em>.</p>
 <p><code>lib/gem/skill/runner.rb</code></p>
 <p>Shared core used by both CLI commands. Drives one gem through the
 cache-check → generate → link sequence:</p>
-<div class="language-ruby highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="no">Runner</span><span class="o">.</span><span class="n">install_skill</span><span class="p">(</span><span class="n">gem_name</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="p">,</span><span class="w"> </span><span class="n">spinner</span><span class="p">,</span><span class="w"> </span><span class="ss">force</span><span class="p">:,</span><span class="w"> </span><span class="ss">model</span><span class="p">:,</span><span class="w"> </span><span class="ss">verify</span><span class="p">:)</span>
+<div class="language-ruby highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="no">Runner</span><span class="o">.</span><span class="n">install_skill</span><span class="p">(</span><span class="n">gem_name</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="p">,</span><span class="w"> </span><span class="n">spinner</span><span class="p">,</span><span class="w"> </span><span class="ss">force</span><span class="p">:,</span><span class="w"> </span><span class="ss">model</span><span class="p">:,</span><span class="w"> </span><span class="ss">verify</span><span class="p">:,</span><span class="w"> </span><span class="ss">link</span><span class="p">:</span><span class="w"> </span><span class="kp">true</span><span class="p">)</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># =&gt; Runner::Result(error:, verify_fixed:)</span>
 </span></code></pre></div>
 <p>Captures errors into the result rather than raising, so the caller (the
 concurrent fiber) can record them without killing other in-flight fibers. When
 <code>verify:</code> is set, the result's <code>verify_fixed</code> lets the CLI aggregate across all
-gems and exit <code>2</code> (<code>EXIT_VERIFY_FIXED</code>) if any skill was corrected.</p>
+gems and exit <code>2</code> (<code>EXIT_VERIFY_FIXED</code>) if any skill was corrected.
+<code>gem skill verify</code> passes <code>link: false</code>, so verifying a cached skill never
+creates a link in the current directory.</p>
 <hr />
 <h2 id="concurrency">Concurrency<a class="headerlink" href="#concurrency" title="Permanent link">&para;</a></h2>
 <p>Both CLI commands use the <code>async</code> gem with <code>Async::Barrier</code>:</p>
