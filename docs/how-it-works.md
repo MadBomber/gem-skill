@@ -155,7 +155,7 @@ Shared core used by both CLI commands. Drives one gem through the
 cache-check → generate → link sequence:
 
 ```ruby
-Runner.install_skill(gem_name, version, spinner, force:, model:, verify:)
+Runner.install_skill(gem_name, version, spinner, force:, model:, verify:, link: true)
 # => Runner::Result(error:, verify_fixed:)
 ```
 
@@ -163,6 +163,8 @@ Captures errors into the result rather than raising, so the caller (the
 concurrent fiber) can record them without killing other in-flight fibers. When
 `verify:` is set, the result's `verify_fixed` lets the CLI aggregate across all
 gems and exit `2` (`EXIT_VERIFY_FIXED`) if any skill was corrected.
+`gem skill verify` passes `link: false`, so verifying a cached skill never
+creates a link in the current directory.
 
 ---
 

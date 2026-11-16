@@ -88,7 +88,8 @@ module Gem::Skill
 
     def self.refresh(opts = {})
       gems   = Lockfile.gems
-      linked  = Linker.linked_gems.to_h { |e| [e[:gem_name], e[:version]] }
+      # A broken link (cached skill gone) is not up to date; prune would delete it.
+      linked  = Linker.linked_gems.select { it[:valid] }.to_h { |e| [e[:gem_name], e[:version]] }
       force       = opts[:force]
       verify      = opts[:verify]
       model       = opts[:model] || Generator::DEFAULT_MODEL

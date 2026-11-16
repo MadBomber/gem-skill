@@ -16,11 +16,12 @@ module Gem::Skill
     end
 
     # Generate + cache + link one skill, optionally verifying it against source.
+    # Pass link: false to leave the project skills dir untouched (gem skill verify).
     # Returns a Runner::Result.
-    def self.install_skill(gem_name, version, spinner, force:, model:, verify: false,
+    def self.install_skill(gem_name, version, spinner, force:, model:, verify: false, link: true,
                            max_tokens: Generator::MAX_TOKENS, temperature: Generator::DEFAULT_TEMPERATURE)
       if Cache.cached?(gem_name, version) && !force
-        Linker.link(gem_name, version)
+        Linker.link(gem_name, version) if link
         content = Cache.read(gem_name, version)
         return finalize(gem_name, version, content, spinner,
                         model: model, verify: verify, max_tokens: max_tokens, status: "already cached")
@@ -32,7 +33,7 @@ module Gem::Skill
       # timeout is set. Streaming keeps bytes flowing between chunks.
       generator = Generator.new(gem_name, version, model: model, max_tokens: max_tokens, temperature: temperature)
       content   = generator.generate(force: force) { |_chunk| }
-      Linker.link(gem_name, version)
+      Linker.link(gem_name, version) if link
       finalize(gem_name, version, content, spinner,
                model: model, verify: verify, max_tokens: max_tokens, status: "done")
     rescue => e

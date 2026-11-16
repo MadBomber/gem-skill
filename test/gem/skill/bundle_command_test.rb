@@ -327,6 +327,34 @@ class BundlerCommandTest < Minitest::Test
     assert_includes generated, "new_gem"
   end
 
+  def test_refresh_regenerates_a_broken_link_instead_of_pruning_it
+    Dir.mktmpdir do |project|
+      Dir.chdir(project) do
+        stub_cache("my_gem", "1.0.0", "# my_gem skill")
+        Gem::Skill::Linker.link("my_gem", "1.0.0")
+        FileUtils.rm_rf(File.join(@tmpdir, "my_gem"))
+
+        generated = []
+        storing_gen = lambda do |name, version, **|
+          obj = Object.new
+          obj.define_singleton_method(:generate) do |**|
+            generated << name
+            Gem::Skill::Cache.store(name, version, "# #{name} skill")
+            "# #{name} skill"
+          end
+          obj
+        end
+        stub_lockfile({ "my_gem" => "1.0.0" }) do
+          Gem::Skill::Generator.stub(:new, storing_gen) { Gem::Skill::BundlerCommand.refresh }
+        end
+
+        assert_equal %w[my_gem], generated
+        entry = Gem::Skill::Linker.linked_gems.find { |e| e[:gem_name] == "my_gem" }
+        assert entry && entry[:valid], "expected a valid my_gem link after refresh"
+      end
+    end
+  end
+
   # --- list ---
 
   def test_list_shows_linked_gems
