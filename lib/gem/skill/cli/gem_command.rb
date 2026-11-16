@@ -210,7 +210,8 @@ class Gem::Commands::SkillCommand < Gem::Command
     end
 
     result = Gem::Skill::Runner.install_skill(gem_name, version, spinner,
-                                              force: false, model: model, verify: true, max_tokens: max_tokens)
+                                              force: false, model: model, verify: true, link: false,
+                                              max_tokens: max_tokens)
     alert_error "#{gem_name}: #{result.error}" if result.error
     result
   rescue Gem::Skill::Error => e
