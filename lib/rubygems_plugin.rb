@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Bundler loads RubyGems plugins without the command manager loaded.
+require "rubygems/command_manager"
 require_relative "gem/skill/cli/gem_command"
 Gem::CommandManager.instance.register_command :skill
 
@@ -51,7 +53,10 @@ module Gem::Skill
 
     def generate_one_skill(name, version, spinner)
       spinner.auto_spin
-      Generator.new(name, version).generate
+      # Stream and discard chunks, as Runner does: a non-streaming request
+      # sends nothing until generation completes, so slow local models trip
+      # Net::ReadTimeout however high the timeout is set.
+      Generator.new(name, version).generate { |_chunk| }
       spinner.success("done")
     rescue => e
       spinner.error("failed")

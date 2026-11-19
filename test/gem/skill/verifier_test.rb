@@ -59,9 +59,46 @@ class VerifierTest < Minitest::Test
     end
   end
 
+  def test_extract_skill_falls_back_when_end_marker_missing
+    # A truncated reply opens the skill but never closes it. Without the end
+    # marker we must fall back to the original rather than cache the partial tail.
+    truncated = "#{Gem::Skill::Verifier::BEGIN_MARK}\n# partial skill cut off mid-"
+    body = verifier.send(:extract_skill, truncated, ORIGINAL)
+    assert_equal ORIGINAL, body
+  end
+
+  def test_extract_skill_returns_body_when_both_markers_present
+    body = verifier.send(:extract_skill, wrap("# clean body"), ORIGINAL)
+    assert_equal "# clean body", body
+  end
+
+  def test_caps_output_tokens_at_default_max_tokens
+    assert_equal Gem::Skill::Generator::MAX_TOKENS, captured_max_tokens(verifier)
+  end
+
+  def test_caps_output_tokens_at_custom_max_tokens
+    custom = Gem::Skill::Verifier.new(@gem_name, @version, max_tokens: 2_048)
+    assert_equal 2_048, captured_max_tokens(custom)
+  end
+
+  # Non-streaming requests trip Net::ReadTimeout on slow local models.
+  def test_verify_streams_the_request
+    ask_got_block = nil
+    chat = responding_chat(ORIGINAL)
+    chat.define_singleton_method(:ask) do |_, &blk|
+      ask_got_block = !blk.nil?
+      FakeResponse.new(ORIGINAL)
+    end
+    stub_fetcher(source: SOURCE) do
+      RubyLLM.stub(:chat, chat) { verifier.verify(ORIGINAL) }
+    end
+    assert ask_got_block
+  end
+
   def test_wraps_ruby_llm_error
     stub_fetcher(source: SOURCE) do
       fake_chat = Object.new
+      fake_chat.define_singleton_method(:with_max_output_tokens) { |_| self }
       fake_chat.define_singleton_method(:with_instructions) { |_| self }
       fake_chat.define_singleton_method(:ask) { |_| raise RubyLLM::UnauthorizedError, "bad key" }
       RubyLLM.stub(:chat, fake_chat) do
@@ -82,6 +119,20 @@ class VerifierTest < Minitest::Test
     "#{Gem::Skill::Verifier::BEGIN_MARK}\n#{body}\n#{Gem::Skill::Verifier::END_MARK}\n"
   end
 
+  # Run a verify through a stubbed chat and return the output-token cap it set.
+  def captured_max_tokens(subject)
+    captured = nil
+    chat     = responding_chat(wrap(ORIGINAL))
+    chat.define_singleton_method(:with_max_output_tokens) do |tokens|
+      captured = tokens
+      self
+    end
+    stub_fetcher(source: SOURCE) do
+      RubyLLM.stub(:chat, chat) { subject.verify(ORIGINAL) }
+    end
+    captured
+  end
+
   def stub_fetcher(source:)
     fetcher = Object.new
     fetcher.define_singleton_method(:source_code) { source }
@@ -90,6 +141,7 @@ class VerifierTest < Minitest::Test
 
   def responding_chat(content)
     chat = Object.new
+    chat.define_singleton_method(:with_max_output_tokens) { |_| self }
     chat.define_singleton_method(:with_instructions) { |_| self }
     chat.define_singleton_method(:ask) { |_| FakeResponse.new(content) }
     chat

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
+require_relative "env"
 # Provider plugin gems self-register with RubyLLM only when required; without
 # these, "lms/..." and "apfel/..." models are unreachable.
 require "ruby_llm/providers/lms"
@@ -9,9 +10,9 @@ require "ruby_llm/providers/apfel"
 module Gem::Skill
   # Drives the LLM pipeline: fetches docs, generates a SKILL.md, caches it.
   class Generator
-    DEFAULT_MODEL       = ENV.fetch("GEMSKILL_MODEL", "gpt-5.5")
-    MAX_TOKENS          = ENV.fetch("GEMSKIL_MAX_TOKENS", 32_767).to_i
-    DEFAULT_TEMPERATURE = ENV.fetch("GEMSKILL_TEMPERATURE", 0.2).to_f
+    DEFAULT_MODEL       = Env.string("GEMSKILL_MODEL", "gpt-5.5")
+    MAX_TOKENS          = Env.integer("GEMSKIL_MAX_TOKENS", 32_767)
+    DEFAULT_TEMPERATURE = Env.float("GEMSKILL_TEMPERATURE", 0.2)
     MAX_SOURCE_CHARS    = 60_000  # guard against enormous READMEs blowing the context window
 
     SYSTEM_INSTRUCTIONS = <<~SYSTEM
@@ -130,21 +131,20 @@ module Gem::Skill
       # with_max_output_tokens (ruby_llm >= 2.0) maps to the right request
       # parameter per provider (max_tokens vs max_completion_tokens).
       chat = RubyLLM.chat(model: @model_id, provider: @provider).with_max_output_tokens(@max_tokens)
-      chat = chat.with_temperature(@temperature) if temperature_supported?
+      chat = chat.with_temperature(@temperature) if temperature_supported?(chat.model)
       chat.with_instructions(SYSTEM_INSTRUCTIONS)
-    end
-
-    def model_info
-      @model_info ||= RubyLLM.models.find(@model_id, provider: @provider)
     end
 
     # Reasoning models (e.g. gpt-5.5) reject a temperature parameter outright.
     # Only set it for models whose metadata doesn't explicitly mark temperature
-    # unsupported; treat absent metadata as supported.
-    def temperature_supported?
+    # unsupported; treat absent metadata as supported. Takes the model the chat
+    # already resolved: for local providers (lms/, apfel/) RubyLLM falls back to
+    # a default model with no :temperature metadata when the id isn't in its
+    # registry, where a second registry lookup would raise ModelNotFoundError.
+    def temperature_supported?(resolved_model)
       return false if @temperature.nil?
 
-      model_info.metadata.fetch(:temperature, true) != false
+      resolved_model.metadata.fetch(:temperature, true) != false
     end
 
     def format_prompt(sources)

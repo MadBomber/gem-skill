@@ -8,6 +8,7 @@ class GeneratorTest < Minitest::Test
   FAKE_SOURCES = { readme: "# Chunker\n\nChunks text into pieces." }.freeze
 
   FakeResponse = Struct.new(:content)
+  FakeModel    = Struct.new(:metadata)
 
   def setup
     @tmpdir   = Dir.mktmpdir
@@ -76,9 +77,7 @@ class GeneratorTest < Minitest::Test
   end
 
   def test_generate_converts_ruby_llm_error_to_gem_skill_error
-    fake_chat = Object.new
-    fake_chat.define_singleton_method(:with_max_output_tokens) { |_| self }
-    fake_chat.define_singleton_method(:with_instructions) { |_| self }
+    fake_chat = responding_chat(FAKE_SKILL)
     fake_chat.define_singleton_method(:ask) { |_| raise RubyLLM::UnauthorizedError, "Invalid API key" }
 
     Gem::Skill::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
@@ -156,10 +155,8 @@ class GeneratorTest < Minitest::Test
 
   def test_custom_max_tokens_passed_via_with_max_output_tokens
     captured_tokens = nil
-    fake_chat       = Object.new
+    fake_chat       = responding_chat(FAKE_SKILL)
     fake_chat.define_singleton_method(:with_max_output_tokens) { |t| captured_tokens = t; self }
-    fake_chat.define_singleton_method(:with_instructions) { |_| self }
-    fake_chat.define_singleton_method(:ask)               { |_| FakeResponse.new(FAKE_SKILL) }
 
     Gem::Skill::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
       RubyLLM.stub(:chat, fake_chat) do
@@ -182,12 +179,12 @@ class GeneratorTest < Minitest::Test
 
   def test_temperature_applied_for_supporting_model
     captured_temp = nil
-    fake_chat     = responding_chat(FAKE_SKILL)
+    # claude models report temperature: true in their RubyLLM metadata
+    fake_chat     = responding_chat(FAKE_SKILL, metadata: { temperature: true })
     fake_chat.define_singleton_method(:with_temperature) { |t| captured_temp = t; self }
 
     Gem::Skill::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
       RubyLLM.stub(:chat, fake_chat) do
-        # claude models report temperature: true in their RubyLLM metadata
         Gem::Skill::Generator.new(@gem_name, @version, model: "claude-haiku-4-5", temperature: 0.4).generate
       end
     end
@@ -197,17 +194,49 @@ class GeneratorTest < Minitest::Test
 
   def test_temperature_skipped_for_reasoning_model
     temperature_called = false
-    fake_chat          = responding_chat(FAKE_SKILL)
+    # gpt-5.5 reports temperature: false in its RubyLLM metadata
+    fake_chat          = responding_chat(FAKE_SKILL, metadata: { temperature: false })
     fake_chat.define_singleton_method(:with_temperature) { |_| temperature_called = true; self }
 
     Gem::Skill::Fetcher.stub(:new, fake_fetcher(FAKE_SOURCES)) do
       RubyLLM.stub(:chat, fake_chat) do
-        # gpt-5.5 reports temperature: false — the param must not be sent
         Gem::Skill::Generator.new(@gem_name, @version, model: "gpt-5.5", temperature: 0.4).generate
       end
     end
 
     refute temperature_called, "temperature must not be set for a reasoning model"
+  end
+
+  # Local providers (LM Studio, Apfel) serve models the static RubyLLM
+  # registry doesn't list. Building the chat (no request is sent) must not
+  # raise, and with no metadata saying otherwise, temperature is applied.
+  def test_build_chat_applies_temperature_for_model_missing_from_registry
+    %w[lms/not-in-registry/model-7b apfel/apple-foundationmodel].each do |model|
+      model_id, provider = Gem::Skill.parse_model(model)
+      assert_raises(RubyLLM::ModelNotFoundError) { RubyLLM.models.find(model_id, provider:) }
+
+      chat = Gem::Skill::Generator.new(@gem_name, @version, model:, temperature: 0.4).send(:build_chat)
+      assert_equal 0.4, chat.temperature, "temperature should be applied for #{model}"
+    end
+  end
+
+  def test_temperature_supported_reads_resolved_model_metadata
+    gen = Gem::Skill::Generator.new(@gem_name, @version, temperature: 0.4)
+    assert gen.send(:temperature_supported?, FakeModel.new({}))
+    assert gen.send(:temperature_supported?, FakeModel.new({ temperature: true }))
+    refute gen.send(:temperature_supported?, FakeModel.new({ temperature: false }))
+  end
+
+  def test_temperature_not_supported_when_temperature_nil
+    gen = Gem::Skill::Generator.new(@gem_name, @version, temperature: nil)
+    refute gen.send(:temperature_supported?, FakeModel.new({ temperature: true }))
+  end
+
+  # The temperature tests above use fake metadata; pin the registry entries
+  # they stand in for, so a RubyLLM change to those flags is caught.
+  def test_registry_temperature_flags_match_fakes
+    assert_equal true,  RubyLLM.models.find("claude-haiku-4-5").metadata[:temperature]
+    assert_equal false, RubyLLM.models.find("gpt-5.5").metadata[:temperature]
   end
 
   private
@@ -227,8 +256,10 @@ class GeneratorTest < Minitest::Test
     ->(*) { fetcher }
   end
 
-  def responding_chat(content)
+  # Default metadata mirrors the default model, gpt-5.5, which rejects temperature.
+  def responding_chat(content, metadata: { temperature: false })
     chat = Object.new
+    chat.define_singleton_method(:model) { FakeModel.new(metadata) }
     chat.define_singleton_method(:with_max_output_tokens) { |_| self }
     chat.define_singleton_method(:with_temperature)  { |_| self }
     chat.define_singleton_method(:with_instructions) { |_| self }
@@ -237,10 +268,7 @@ class GeneratorTest < Minitest::Test
   end
 
   def streaming_chat(chunks)
-    chat = Object.new
-    chat.define_singleton_method(:with_max_output_tokens) { |_| self }
-    chat.define_singleton_method(:with_temperature)  { |_| self }
-    chat.define_singleton_method(:with_instructions) { |_| self }
+    chat = responding_chat(nil)
     chat.define_singleton_method(:ask) do |_, &blk|
       chunks.each { |c| blk&.call(FakeResponse.new(c)) }
     end

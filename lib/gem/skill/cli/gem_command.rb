@@ -23,11 +23,11 @@ class Gem::Commands::SkillCommand < Gem::Command
     add_option("-m", "--model MODEL",   "LLM model to use (default: #{Gem::Skill::Generator::DEFAULT_MODEL})") do |model, o|
       o[:model] = model
     end
-    add_option("--max-tokens TOKENS",   "Max output tokens (overrides GEMSKIL_MAX_TOKENS; default: #{Gem::Skill::Generator::MAX_TOKENS})") do |tokens, o|
-      o[:max_tokens] = tokens.to_i
+    add_option("--max-tokens TOKENS", Gem::OptionParser::DecimalInteger, "Max output tokens (overrides GEMSKIL_MAX_TOKENS; default: #{Gem::Skill::Generator::MAX_TOKENS})") do |tokens, o|
+      o[:max_tokens] = tokens
     end
-    add_option("--temperature TEMP",    "Sampling temperature; ignored by reasoning models (overrides GEMSKILL_TEMPERATURE; default: #{Gem::Skill::Generator::DEFAULT_TEMPERATURE})") do |temp, o|
-      o[:temperature] = temp.to_f
+    add_option("--temperature TEMP", Float, "Sampling temperature; ignored by reasoning models (overrides GEMSKILL_TEMPERATURE; default: #{Gem::Skill::Generator::DEFAULT_TEMPERATURE})") do |temp, o|
+      o[:temperature] = temp
     end
     add_option("-v", "--version",       "Print gem-skill version and exit") { |_, o| o[:version] = true }
   end
@@ -52,7 +52,8 @@ class Gem::Commands::SkillCommand < Gem::Command
                 mismatches (does not generate; errors if not cached).
       list      Show all skills in the global cache (~/.gem/skills).
       purge     Remove a specific cached version.
-      setup     Register gem-skill as a Bundler plugin (run once after install).
+      setup     Register gem-skill as a Bundler plugin and install the router
+                skill (run after install and after each upgrade).
 
       Use 'bundle skill install' in any project after running 'gem skill setup'.
     DESC
@@ -76,18 +77,19 @@ class Gem::Commands::SkillCommand < Gem::Command
     else
       alert_error "Unknown subcommand: #{subcmd.inspect}"
       say usage
+      terminate_interaction 1
     end
   end
 
   private
 
   def cmd_install
-    gem_names = options[:args].dup
+    gem_names = options[:args].uniq
     options[:args].clear
 
     if gem_names.empty?
       alert_error "gem_name required. Usage: gem skill install GEM_NAME [GEM_NAME ...]"
-      return
+      terminate_interaction 1
     end
 
     force       = options[:force]
@@ -115,13 +117,11 @@ class Gem::Commands::SkillCommand < Gem::Command
       barrier.stop
     end
 
-    say "Tip: run 'bundle plugin install gem-skill' to enable 'bundle skill'."
+    say "Tip: run 'gem skill setup' to enable 'bundle skill' and install the router skill."
 
     fixed = results.count(&:verify_fixed)
-    if verify && fixed.positive?
-      say "Verify corrected #{fixed} skill(s) against gem source."
-      terminate_interaction Gem::Skill::EXIT_VERIFY_FIXED
-    end
+    say "Verify corrected #{fixed} skill(s) against gem source." if verify && fixed.positive?
+    exit_for(results, verify_fixed: verify && fixed.positive?)
   end
 
   def install_one(gem_name, spinner:, force:, model:, verify: false, max_tokens: Gem::Skill::Generator::MAX_TOKENS, temperature: Gem::Skill::Generator::DEFAULT_TEMPERATURE)
@@ -142,15 +142,16 @@ class Gem::Commands::SkillCommand < Gem::Command
   end
 
   def cmd_verify
-    gem_names = options[:args].dup
+    gem_names = options[:args].uniq
     options[:args].clear
 
     if gem_names.empty?
       alert_error "gem_name required. Usage: gem skill verify GEM_NAME [GEM_NAME ...]"
-      return
+      terminate_interaction 1
     end
 
-    model = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
+    model      = options[:model] || Gem::Skill::Generator::DEFAULT_MODEL
+    max_tokens = options[:max_tokens] || Gem::Skill::Generator::MAX_TOKENS
 
     multi = TTY::Spinner::Multi.new(
       "[:spinner] Verifying skills (#{model})",
@@ -164,7 +165,9 @@ class Gem::Commands::SkillCommand < Gem::Command
       gem_names.each do |gem_name|
         spinner = multi.register("  [:spinner] :title")
         spinner.update(title: gem_name)
-        barrier.async { results << verify_one(gem_name, spinner: spinner, model: model) }
+        barrier.async do
+          results << verify_one(gem_name, spinner: spinner, model: model, max_tokens: max_tokens)
+        end
       end
       barrier.wait
     ensure
@@ -172,15 +175,25 @@ class Gem::Commands::SkillCommand < Gem::Command
     end
 
     fixed = results.count(&:verify_fixed)
-    if fixed.positive?
-      say "Verify corrected #{fixed} skill(s) against gem source."
+    say "Verify corrected #{fixed} skill(s) against gem source." if fixed.positive?
+    exit_for(results, verify_fixed: fixed.positive?)
+  end
+
+  # Settle the command's exit status after running a batch of gems. A real error
+  # (exit 1) takes precedence over a verify-fixed result (exit 2); a clean batch
+  # returns normally (exit 0). Mirrors how EXIT_VERIFY_FIXED is raised elsewhere
+  # via Gem::Command#terminate_interaction (Gem::SystemExitException).
+  def exit_for(results, verify_fixed:)
+    if results.any?(&:error)
+      terminate_interaction 1
+    elsif verify_fixed
       terminate_interaction Gem::Skill::EXIT_VERIFY_FIXED
     end
   end
 
   # Verify an already-cached skill in place. Never generates: the gem must be
   # installed (verification needs its source) and the skill must already be cached.
-  def verify_one(gem_name, spinner:, model:)
+  def verify_one(gem_name, spinner:, model:, max_tokens: Gem::Skill::Generator::MAX_TOKENS)
     spinner.auto_spin
     version = resolve_installed_version(gem_name)
     if version.nil?
@@ -196,7 +209,9 @@ class Gem::Commands::SkillCommand < Gem::Command
       return Gem::Skill::Runner::Result.failure("not cached")
     end
 
-    result = Gem::Skill::Runner.install_skill(gem_name, version, spinner, force: false, model: model, verify: true)
+    result = Gem::Skill::Runner.install_skill(gem_name, version, spinner,
+                                              force: false, model: model, verify: true, link: false,
+                                              max_tokens: max_tokens)
     alert_error "#{gem_name}: #{result.error}" if result.error
     result
   rescue Gem::Skill::Error => e
@@ -252,34 +267,45 @@ class Gem::Commands::SkillCommand < Gem::Command
     "Agents (vendor-neutral)" => "~/.agents/skills"
   }.freeze
 
+  # Runs both setup steps even when the first fails, then exits 1 if either did.
   def cmd_setup
-    register_bundler_plugin
+    plugin_ok = register_bundler_plugin
     say ""
-    install_router_skill
+    router_ok = install_router_skill
+    terminate_interaction 1 unless plugin_ok && router_ok
   end
 
+  # True when gem-skill is (now) a registered Bundler plugin.
   def register_bundler_plugin
     plugin_list = `bundle plugin list 2>/dev/null`
     if plugin_list.include?("gem-skill")
       say "gem-skill is already registered as a Bundler plugin."
-      return
+      return true
     end
 
     say "Registering gem-skill as a Bundler plugin..."
     if system("bundle", "plugin", "install", "gem-skill")
       say "Done. Use 'bundle skill install' in any project."
+      true
     else
       alert_error "Failed. Try running manually: bundle plugin install gem-skill"
+      false
     end
+  end
+
+  def router_skill_source
+    File.join(Gem::Skill::ROUTER_SKILL_DIR, "SKILL.md")
   end
 
   # Copy the bundled '#{Gem::Skill::ROUTER_SKILL_NAME}' skill into the default
   # skill root of each detected assistant, so it can discover cached gem skills.
+  # False only when the bundled skill is missing; finding no assistant is not
+  # an error.
   def install_router_skill
-    source = File.join(Gem::Skill::ROUTER_SKILL_DIR, "SKILL.md")
+    source = router_skill_source
     unless File.exist?(source)
       alert_error "Router skill not found at #{source}"
-      return
+      return false
     end
 
     say "Installing the '#{Gem::Skill::ROUTER_SKILL_NAME}' skill so assistants can find cached gem skills:"
@@ -298,9 +324,10 @@ class Gem::Commands::SkillCommand < Gem::Command
       installed += 1
     end
 
-    return unless installed.zero?
-
-    say "  No assistant directories detected. Create ~/.claude or ~/.codex, then re-run 'gem skill setup'."
+    if installed.zero?
+      say "  No assistant directories detected. Create ~/.claude or ~/.codex, then re-run 'gem skill setup'."
+    end
+    true
   end
 
   def cmd_purge

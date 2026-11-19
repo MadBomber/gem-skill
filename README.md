@@ -82,7 +82,7 @@ gem skill setup
 ```
 
 `gem install` gives you the `gem skill` subcommand.
-`gem skill setup` registers gem-skill as a Bundler plugin, enabling `bundle skill` in any project.
+`gem skill setup` registers gem-skill as a Bundler plugin, enabling `bundle skill` in any project, and installs the router skill.
 
 You only need to run `gem skill setup` once per machine. Alternatively, you can
 add the plugin directly to a project's `Gemfile`:
@@ -94,12 +94,21 @@ plugin "gem-skill"
 ## Requirements
 
 `gem-skill` uses [RubyLLM](https://github.com/crmne/ruby_llm) to generate
-skills. Configure at least one provider API key before running:
+skills. Configure a provider API key or a local model before running:
 
 ```bash
 export OPENAI_API_KEY="..."      # default model: gpt-5.5
 export ANTHROPIC_API_KEY="..."   # or use Claude
 export GEMINI_API_KEY="..."      # or Gemini
+```
+
+Or run a local model (LM Studio, Apfel, or Ollama) with no API key by prefixing the
+model with `lms/`, `apfel/`, or `ollama/`. Apfel's 4,096-token context fits only very
+small gems, and only with a lower `GEMSKIL_MAX_TOKENS`; see
+[Local models](https://madbomber.github.io/gem-skill/configuration/#local-models):
+
+```bash
+gem skill install faraday --model lms/qwen/qwen3-4b
 ```
 
 ## Configuration
@@ -111,8 +120,9 @@ All environment variables and their defaults:
 | `GEMSKILL_DIR` | `~/.gem/skills` | Root directory for the global skill cache |
 | `GEMSKILL_PROJECT_DIR` | `.claude/skills` | Project-relative directory where `bundle skill` writes symlinks |
 | `GEMSKILL_MODEL` | `gpt-5.5` | LLM model used when generating skills |
-| `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated skill file |
+| `GEMSKIL_MAX_TOKENS` | `32767` | Maximum output tokens per generated or verified skill file |
 | `GEMSKILL_TEMPERATURE` | `0.2` | Sampling temperature (skipped for reasoning models that reject it) |
+| `GEMSKILL_REQUEST_TIMEOUT` | `900` | HTTP timeout in seconds for each LLM request |
 | `ANTHROPIC_API_KEY` | _(none)_ | API key for Anthropic / Claude models |
 | `OPENAI_API_KEY` | _(none)_ | API key for OpenAI / GPT models |
 | `GEMINI_API_KEY` | _(none)_ | API key for Google Gemini models |
@@ -120,6 +130,12 @@ All environment variables and their defaults:
 | `DEEPSEEK_API_KEY` | _(none)_ | API key for DeepSeek models |
 | `OPENROUTER_API_KEY` | _(none)_ | API key for OpenRouter |
 | `XAI_API_KEY` | _(none)_ | API key for xAI (Grok) models |
+| `LMS_API_BASE` | `http://localhost:1234/v1` | LM Studio server URL for `lms/...` models |
+| `LMS_API_KEY` | _(none)_ | LM Studio API token, only if the server requires one |
+| `APFEL_API_BASE` | `http://127.0.0.1:11434/v1` | Apfel server URL for `apfel/...` models |
+| `APFEL_API_KEY` | _(none)_ | Apfel token, only if started with `apfel --serve --token` |
+| `OLLAMA_API_BASE` | _(none)_ | Ollama server URL for `ollama/...` models, e.g. `http://localhost:11434/v1` |
+| `OLLAMA_API_KEY` | _(none)_ | Ollama token, only if the server sits behind an auth proxy |
 
 ```bash
 # Store skills on a shared drive accessible to all projects
@@ -217,7 +233,13 @@ bundle skill list
 
 # Options available on install and refresh
 bundle skill install --force
+bundle skill install --verify
 bundle skill install --model claude-haiku-4-5
+bundle skill install --max-tokens 65536
+bundle skill install --temperature 0.0
+
+# Print usage (Bundler intercepts -h/--help)
+bundle skill help
 
 # Print the installed version
 bundle skill --version
@@ -236,11 +258,15 @@ Each `SKILL.md` covers:
 - **Configuration** — initializer patterns and environment variables
 - **Testing** — how to test code that uses the gem
 
-The content is synthesized from three sources, tried in priority order:
+The content is synthesized from up to four sources, each read from the
+installed gem (`Gem::Specification` → `gem_dir`) first:
 
-1. Local gem install (`Gem::Specification` → `gem_dir`) — README and CHANGELOG
-2. RubyGems API — summary, runtime dependencies, source URI
-3. GitHub raw README — fetched when the gem isn't installed locally
+1. Metadata — gemspec summary, description, authors, URIs, runtime dependencies; RubyGems API when the gem isn't installed
+2. README — raw GitHub README when no local one is found
+3. CHANGELOG — local only
+4. Examples — `examples/**/*.{rb,md}`, local only
+
+Each source is truncated to 60,000 characters.
 
 ## Development
 

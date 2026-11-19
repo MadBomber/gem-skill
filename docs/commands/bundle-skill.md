@@ -13,7 +13,12 @@ These flags work without a subcommand:
 ```bash
 bundle skill --version    # print installed version and exit
 bundle skill -v           # same
+bundle skill help         # print usage (subcommands, options, env)
 ```
+
+Bundler intercepts `-h` and `--help` before the plugin sees them, so
+`bundle skill help` (or `bundle skill` with no subcommand) is the way to see
+the usage text.
 
 ## Prerequisites
 
@@ -43,11 +48,14 @@ bundle skill install [OPTIONS]
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Regenerate even if skills are already cached |
+| `--force`, `-f` | Regenerate even if skills are already cached |
 | `--verify` | Verify generated skills against each gem's source and fix mismatches (exit `2` if any fixes applied) |
-| `--model MODEL` | LLM model to use (overrides `GEMSKILL_MODEL`) |
+| `--model MODEL`, `-m MODEL` | LLM model to use (overrides `GEMSKILL_MODEL`) |
 | `--max-tokens TOKENS` | Max output tokens per skill (overrides `GEMSKIL_MAX_TOKENS`; default: 32767) |
+| `--temperature TEMP` | Sampling temperature; ignored by reasoning models (overrides `GEMSKILL_TEMPERATURE`; default: 0.2) |
 | `--version`, `-v` | Print the installed gem-skill version and exit |
+
+Flags may come before or after the subcommand (`bundle skill --model MODEL install` works too), and `--model=MODEL` style is accepted. An unknown or abbreviated flag, or a value flag with nothing after it, is an error.
 
 **Example:**
 
@@ -85,6 +93,17 @@ your-project/.claude/skills/
 The assistant automatically reads `SKILL.md` from each linked directory (Claude
 Code reads `.claude/skills/`; other assistants use their own roots).
 
+**Exit status** (same for `install` and `refresh`, so CI can detect failures):
+
+| Code | Meaning |
+|------|---------|
+| `0` | Every gem succeeded and `--verify` corrected nothing (or was not used) |
+| `1` | At least one gem failed |
+| `2` | `--verify` found and corrected problems |
+
+An error (`1`) takes precedence over corrections (`2`): if any gem errors while
+others were fixed, the command exits `1`.
+
 ---
 
 ### `bundle skill refresh`
@@ -97,9 +116,11 @@ bundle skill refresh [OPTIONS]
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Regenerate all skills, even those already at the correct version |
-| `--model MODEL` | LLM model to use |
+| `--force`, `-f` | Regenerate all skills, even those already at the correct version |
+| `--verify` | Verify each skill that is (re)generated against its gem's source and fix mismatches (exit `2` if any fixes applied); gems shown `up to date` are not re-verified |
+| `--model MODEL`, `-m MODEL` | LLM model to use |
 | `--max-tokens TOKENS` | Max output tokens per skill (overrides `GEMSKIL_MAX_TOKENS`; default: 32767) |
+| `--temperature TEMP` | Sampling temperature; ignored by reasoning models (overrides `GEMSKILL_TEMPERATURE`; default: 0.2) |
 
 `refresh` skips gems that are already linked at the correct version (shows
 `up to date`), regenerates gems whose version changed, and removes dead symlinks

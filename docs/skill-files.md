@@ -69,11 +69,24 @@ in `.claude/skills/`). This means:
 
 ## Sources used to generate
 
-The LLM is given up to three sources per gem (in priority order):
+The LLM is given up to four sources per gem. Each is read from the installed
+gem first; a source that can't be found is left out.
 
-1. **Local README + CHANGELOG** — from the gem's install directory
-2. **RubyGems API** — summary, dependencies, source URI
-3. **GitHub raw README** — fetched when not installed locally
+1. **Metadata** — from the installed gemspec: summary, description, authors,
+   homepage, licenses, source and documentation URIs, and runtime
+   dependencies. Falls back to the RubyGems API (summary, homepage, source and
+   documentation URIs, runtime dependencies) when the gem isn't installed.
+2. **README** — `README.md`, `README.rdoc`, `README.txt` or `README` from the
+   gem's install directory. Falls back to the raw README on GitHub (`main`,
+   then `master` branch) when the RubyGems API lists a GitHub source or
+   homepage URI.
+3. **CHANGELOG** — `CHANGELOG.md`, `CHANGELOG.rdoc`, `HISTORY.md` or
+   `CHANGES.md` from the gem's install directory. There is no remote fallback.
+4. **Examples** — every `*.rb` and `*.md` file under the gem's `examples/`
+   directory. Local only. Gem authors who want better skills can ship
+   examples there.
+
+Each source is truncated to 60,000 characters before it goes into the prompt.
 
 Content is synthesized, not copied verbatim. The model is instructed to write
 as a knowledgeable colleague, not a marketing document.

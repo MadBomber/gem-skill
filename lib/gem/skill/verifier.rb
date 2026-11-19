@@ -70,12 +70,13 @@ module Gem::Skill
       def changed? = changed
     end
 
-    attr_reader :gem_name, :version, :model
+    attr_reader :gem_name, :version, :model, :max_tokens
 
-    def initialize(gem_name, version, model: Generator::DEFAULT_MODEL)
-      @gem_name = gem_name
-      @version  = version
-      @model    = model
+    def initialize(gem_name, version, model: Generator::DEFAULT_MODEL, max_tokens: Generator::MAX_TOKENS)
+      @gem_name   = gem_name
+      @version    = version
+      @model      = model
+      @max_tokens = max_tokens
     end
 
     # Verify skill_content against the gem source. Returns a Result.
@@ -86,7 +87,9 @@ module Gem::Skill
         return Result.new(content: skill_content, changed: false, verifiable: false, model: model)
       end
 
-      raw       = build_chat.ask(format_prompt(skill_content, source)).content.to_s
+      # Stream and discard chunks, as Runner does, so slow local models don't
+      # trip Net::ReadTimeout; the returned message still has the full content.
+      raw       = build_chat.ask(format_prompt(skill_content, source)) { |_chunk| }.content.to_s
       # Re-apply frontmatter to both sides so the diff compares like-for-like and
       # the stored skill always keeps valid frontmatter, even if the model dropped it.
       original  = Frontmatter.build(gem_name, version, skill_content)
@@ -103,7 +106,9 @@ module Gem::Skill
 
     def build_chat
       model_id, provider = Gem::Skill.parse_model(model)
-      RubyLLM.chat(model: model_id, provider: provider).with_instructions(SYSTEM_INSTRUCTIONS)
+      RubyLLM.chat(model: model_id, provider: provider)
+             .with_max_output_tokens(max_tokens)
+             .with_instructions(SYSTEM_INSTRUCTIONS)
     end
 
     def format_prompt(skill_content, source)
@@ -126,9 +131,9 @@ module Gem::Skill
 
       body = raw[(start + BEGIN_MARK.length)..]
       stop = body.index(END_MARK)
-      body = body[0...stop] if stop
+      return fallback unless stop
 
-      body = body.to_s.strip
+      body = body[0...stop].strip
       body.empty? ? fallback : body
     end
 

@@ -46,6 +46,15 @@ gem skill install rails --max-tokens 65536
 gem skill install faraday --model claude-sonnet-4-6 --temperature 0.0
 ```
 
+All gems are processed concurrently — you'll see a live spinner per gem:
+
+```
+⠋ Generating skills (claude-sonnet-4-6)
+  ✓ debug_me 1.1.0 done
+  ✓ faraday 2.12.0 done
+  ⠋ zeitwerk 2.8.2
+```
+
 If a gem is not installed locally, gem-skill will install it automatically
 before generating the skill.
 
@@ -68,11 +77,13 @@ If no source is available, the skill is left untouched.
 | `1` | Error |
 | `2` | `--verify` found and corrected problems |
 
-Either way, `metadata.json` gains a `verification` block recording that the gem's
-actual source was consulted, which files were examined, and — when fixes were
-applied — an array of structured, issue-ready corrections (affected symbol,
-source location, what the skill said vs. the truth, and the proving source
-snippet). See [Cache layout](cache.md#metadatajson) for the full schema.
+An error (`1`) takes precedence over corrections (`2`): if any gem errors while
+others were fixed, the command exits `1`.
+
+Either way, `metadata.json` gains a `verification` block recording when the
+skill was checked against the gem's actual source, which model checked it, and
+whether fixes were applied. See [Cache layout](../cache.md#metadatajson) for the
+full schema.
 
 A verified skill is flagged with a green checkmark in
 [`gem skill list`](#gem-skill-list).
@@ -91,6 +102,7 @@ gem skill verify GEM_NAME [GEM_NAME ...]
 This runs the same source-truth check as `--verify`, but never generates: the
 gem must be installed (verification reads its source) and the skill must already
 be cached. It errors if either is missing rather than generating a new skill.
+`--model` and `--max-tokens` apply here as they do to `install`.
 
 ```bash
 # Verify the cached tty-spinner skill against its installed source
@@ -109,18 +121,9 @@ Print the installed gem-skill version and exit.
 
 ```bash
 gem skill --version
-# 0.1.3
+# 0.2.2
 gem skill -v
-# 0.1.3
-```
-
-All gems are processed concurrently — you'll see a live spinner per gem:
-
-```
-⠋ Generating skills (claude-sonnet-4-6)
-  ✓ debug_me 1.1.0 done
-  ✓ faraday 2.12.0 done
-  ⠋ zeitwerk 2.8.2
+# 0.2.2
 ```
 
 ---
@@ -148,6 +151,10 @@ when you work with a Ruby gem and tells the assistant how to find and read that
 gem's cached `SKILL.md` (resolving the version from `Gemfile.lock` or the
 installed gem). Re-run `gem skill setup` after upgrading gem-skill to refresh the
 copy. See [Installation](../installation.md) for details.
+
+Both steps always run. The command exits `1` if either fails (the Bundler
+plugin could not be registered, or the bundled router skill is missing), and
+`0` otherwise, including when no assistant home directory was detected.
 
 ---
 

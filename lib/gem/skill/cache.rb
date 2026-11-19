@@ -13,10 +13,12 @@ module Gem::Skill
     def self.root = ROOT
 
     def self.skill_path(gem_name, version)
+      Validation.validate!(gem_name, version)
       File.join(ROOT, gem_name, version, "SKILL.md")
     end
 
     def self.metadata_path(gem_name, version)
+      Validation.validate!(gem_name, version)
       File.join(ROOT, gem_name, version, "metadata.json")
     end
 
@@ -25,6 +27,7 @@ module Gem::Skill
     end
 
     def self.store(gem_name, version, skill_content, metadata = {})
+      Validation.validate!(gem_name, version)
       dir = File.join(ROOT, gem_name, version)
       FileUtils.mkdir_p(dir)
       File.write(skill_path(gem_name, version), skill_content)
@@ -67,19 +70,22 @@ module Gem::Skill
     end
 
     def self.versions(gem_name)
+      Validation.validate_gem_name!(gem_name)
       dir = File.join(ROOT, gem_name)
       return [] unless Dir.exist?(dir)
 
-      Dir.children(dir).sort
+      Dir.children(dir).select { |entry| Validation.valid_version?(entry) }.sort_by { Gem::Version.new(it) }
     end
 
+    # Stray entries such as Finder's .DS_Store are not gems and are skipped.
     def self.all_gems
       return [] unless Dir.exist?(ROOT)
 
-      Dir.children(ROOT).sort
+      Dir.children(ROOT).select { |entry| Validation.valid_gem_name?(entry) }.sort
     end
 
     def self.purge(gem_name, version)
+      Validation.validate!(gem_name, version)
       dir = File.join(ROOT, gem_name, version)
       FileUtils.rm_rf(dir)
       parent = File.join(ROOT, gem_name)

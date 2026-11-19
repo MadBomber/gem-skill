@@ -2,6 +2,7 @@
 
 require "test_helper"
 require "tmpdir"
+require "open3"
 
 require "rubygems/command_manager"
 require "rubygems/commands/install_command"
@@ -35,6 +36,18 @@ class RubygemsPluginTest < Minitest::Test
     cmd = Gem::Commands::InstallCommand.new
     cmd.handle_options(%w[my_gem])
     refute cmd.options[:generate_skill]
+  end
+
+  # --- loading ---
+
+  # Bundler loads RubyGems plugins without rubygems/command_manager, so the
+  # plugin must require it itself. Run in a fresh process: this file already
+  # required it above.
+  def test_plugin_loads_without_command_manager_preloaded
+    lib = File.expand_path("../../../lib", __dir__)
+    script = 'require "rubygems_plugin"; exit Gem::CommandManager.instance.command_names.include?("skill")'
+    output, status = Open3.capture2e(RbConfig.ruby, "-I", lib, "-e", script)
+    assert status.success?, output
   end
 
   # --- post_install hook: collection ---
@@ -76,6 +89,19 @@ class RubygemsPluginTest < Minitest::Test
       Gem::Skill.generate_one_skill("my_gem", "1.0.0", null_spinner)
     end
     assert_includes generated, "my_gem"
+  end
+
+  # A non-streaming request sends nothing until generation finishes, so a
+  # slow local model trips Net::ReadTimeout. --with-skill must stream like
+  # Runner does (#33).
+  def test_generate_one_skill_streams_generation
+    streamed = nil
+    gen = Object.new
+    gen.define_singleton_method(:generate) { |**, &blk| streamed = !blk.nil?; "# skill" }
+    Gem::Skill::Generator.stub(:new, ->(*) { gen }) do
+      Gem::Skill.generate_one_skill("my_gem", "1.0.0", null_spinner)
+    end
+    assert streamed, "generate_one_skill must pass a block so the request streams"
   end
 
   def test_generate_one_skill_does_not_raise_on_gem_skill_error

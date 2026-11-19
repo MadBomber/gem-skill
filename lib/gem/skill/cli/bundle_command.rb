@@ -6,6 +6,7 @@ require "gem/skill"
 require "async"
 require "fileutils"
 require "json"
+require "optparse"
 require "tty-spinner"
 
 module Gem::Skill
@@ -16,26 +17,30 @@ module Gem::Skill
     SUBCOMMANDS = %w[install refresh list].freeze
 
     def self.run(args)
-      Gem::Skill.configure_llm!
-      opts, rest = parse_options(args)
+      begin
+        opts, rest = parse_options(args)
+      rescue OptionParser::ParseError => e
+        abort_with_usage(e.message)
+      end
       subcmd = rest.shift
 
       if opts[:version]
         puts Gem::Skill::VERSION
         return
       end
+      return puts(usage) if opts[:help] || [nil, "help"].include?(subcmd)
 
+      Gem::Skill.configure_llm!
       case subcmd
       when "install" then install(opts)
       when "refresh" then refresh(opts)
       when "list"    then list
-      when nil, "help", "--help"
-        puts usage
       else
-        warn "gem-skill: unknown subcommand #{subcmd.inspect}"
-        warn usage
-        exit 1
+        abort_with_usage("unknown subcommand #{subcmd.inspect}")
       end
+    rescue Gem::Skill::Error => e
+      warn "gem-skill: #{e.message}"
+      exit 1
     end
 
     def self.install(opts = {})
@@ -45,12 +50,13 @@ module Gem::Skill
         return
       end
 
-      force      = opts[:force]
-      verify     = opts[:verify]
-      model      = opts[:model] || Generator::DEFAULT_MODEL
-      max_tokens = opts[:max_tokens] || Generator::MAX_TOKENS
-      errors     = []
-      results    = []
+      force       = opts[:force]
+      verify      = opts[:verify]
+      model       = opts[:model] || Generator::DEFAULT_MODEL
+      max_tokens  = opts[:max_tokens] || Generator::MAX_TOKENS
+      temperature = opts[:temperature] || Generator::DEFAULT_TEMPERATURE
+      errors      = []
+      results     = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Installing skills (#{model})",
@@ -64,7 +70,7 @@ module Gem::Skill
           sp = multi.register("  [:spinner] :title")
           sp.update(title: "#{gem_name} #{version}")
           barrier.async do
-            result = install_one(gem_name, version, sp, force: force, model: model, verify: verify, max_tokens: max_tokens)
+            result = install_one(gem_name, version, sp, force:, model:, verify:, max_tokens:, temperature:)
             results << result
             errors << "#{gem_name} #{version}: #{result.error}" if result.error
           end
@@ -77,17 +83,20 @@ module Gem::Skill
       Linker.prune_dead_links
       report_errors(errors)
       report_verify(results, verify)
+      exit_for(errors, results)
     end
 
     def self.refresh(opts = {})
       gems   = Lockfile.gems
-      linked  = Linker.linked_gems.to_h { |e| [e[:gem_name], e[:version]] }
-      force      = opts[:force]
-      verify     = opts[:verify]
-      model      = opts[:model] || Generator::DEFAULT_MODEL
-      max_tokens = opts[:max_tokens] || Generator::MAX_TOKENS
-      errors     = []
-      results    = []
+      # A broken link (cached skill gone) is not up to date; prune would delete it.
+      linked  = Linker.linked_gems.select { it[:valid] }.to_h { |e| [e[:gem_name], e[:version]] }
+      force       = opts[:force]
+      verify      = opts[:verify]
+      model       = opts[:model] || Generator::DEFAULT_MODEL
+      max_tokens  = opts[:max_tokens] || Generator::MAX_TOKENS
+      temperature = opts[:temperature] || Generator::DEFAULT_TEMPERATURE
+      errors      = []
+      results     = []
 
       multi = TTY::Spinner::Multi.new(
         "[:spinner] Refreshing skills (#{model})",
@@ -106,7 +115,7 @@ module Gem::Skill
               sp.success("up to date")
               Runner::Result.success
             else
-              install_one(gem_name, version, sp, force: force, model: model, verify: verify, max_tokens: max_tokens)
+              install_one(gem_name, version, sp, force:, model:, verify:, max_tokens:, temperature:)
             end
             results << result
             errors << "#{gem_name} #{version}: #{result.error}" if result.error
@@ -120,6 +129,7 @@ module Gem::Skill
       Linker.prune_dead_links
       report_errors(errors)
       report_verify(results, verify)
+      exit_for(errors, results)
     end
 
     def self.list
@@ -143,9 +153,10 @@ module Gem::Skill
 
     # --- private ---
 
-    def self.install_one(gem_name, version, spinner, force:, model:, verify: false, max_tokens: Generator::MAX_TOKENS)
+    def self.install_one(gem_name, version, spinner, force:, model:, verify: false,
+                         max_tokens: Generator::MAX_TOKENS, temperature: Generator::DEFAULT_TEMPERATURE)
       spinner.auto_spin
-      Runner.install_skill(gem_name, version, spinner, force: force, model: model, verify: verify, max_tokens: max_tokens)
+      Runner.install_skill(gem_name, version, spinner, force:, model:, verify:, max_tokens:, temperature:)
     end
     private_class_method :install_one
 
@@ -157,8 +168,6 @@ module Gem::Skill
     end
     private_class_method :report_errors
 
-    # When --verify applied fixes, report and exit non-zero so callers/CI can
-    # detect that the README-derived skill disagreed with the source.
     def self.report_verify(results, verify)
       return unless verify
 
@@ -167,32 +176,46 @@ module Gem::Skill
 
       warn ""
       warn "Verify corrected #{fixed} skill(s) against gem source."
-      exit Gem::Skill::EXIT_VERIFY_FIXED
     end
     private_class_method :report_verify
 
-    def self.parse_options(args)
-      opts      = {}
-      remaining = []
+    # Settle the exit status after a batch so callers/CI can detect failures: an
+    # error (1) takes precedence over verify-fixed (2); a clean batch exits 0.
+    def self.exit_for(errors, results)
+      exit 1 unless errors.empty?
+      exit Gem::Skill::EXIT_VERIFY_FIXED if results.any?(&:verify_fixed)
+    end
+    private_class_method :exit_for
 
-      args.each do |arg|
-        case arg
-        when "--force"           then opts[:force] = true
-        when "--verify"          then opts[:verify] = true
-        when "--version", "-v"   then opts[:version] = true
-        when /\A--model(?:=(.+))?\z/
-          opts[:model] = $1 || args[args.index(arg) + 1]
-        when /\A--max-tokens(?:=(.+))?\z/
-          opts[:max_tokens] = ($1 || args[args.index(arg) + 1]).to_i
-        else
-          remaining << arg unless opts[:model].nil? && arg !~ /\A--/
-          remaining << arg if arg !~ /\A--/
-        end
+    # Returns [opts, remaining_args]. Flags may come before or after the
+    # subcommand, whatever POSIXLY_CORRECT says. Raises OptionParser::ParseError
+    # on an unknown or abbreviated flag, or a missing or malformed value.
+    # -h/--help is defined so OptionParser's built-in help never replaces
+    # `usage`; on the command line Bundler intercepts it, and `bundle skill
+    # help` is the way in.
+    def self.parse_options(args)
+      opts   = {}
+      parser = OptionParser.new do |flags|
+        flags.require_exact = true
+        flags.on("-f", "--force")                                     { opts[:force] = true }
+        flags.on("--verify")                                          { opts[:verify] = true }
+        flags.on("-v", "--version")                                   { opts[:version] = true }
+        flags.on("-h", "--help")                                      { opts[:help] = true }
+        flags.on("-m", "--model MODEL")                               { opts[:model] = it }
+        flags.on("--max-tokens TOKENS", OptionParser::DecimalInteger) { opts[:max_tokens] = it }
+        flags.on("--temperature TEMP", Float)                         { opts[:temperature] = it }
       end
 
-      [opts, remaining]
+      [opts, parser.permute(args)]
     end
     private_class_method :parse_options
+
+    def self.abort_with_usage(message)
+      warn "gem-skill: #{message}"
+      warn usage
+      exit 1
+    end
+    private_class_method :abort_with_usage
 
     def self.usage
       <<~USAGE
@@ -204,10 +227,11 @@ module Gem::Skill
           list      Show skills linked in this project
 
         Options:
-          --force                Regenerate even if already cached
+          --force, -f            Regenerate even if already cached
           --verify               Verify generated skills against gem source and fix mismatches
-          --model MODEL          LLM model to use (default: #{Generator::DEFAULT_MODEL})
+          --model, -m MODEL      LLM model to use (default: #{Generator::DEFAULT_MODEL})
           --max-tokens TOKENS    Max output tokens (overrides GEMSKIL_MAX_TOKENS; default: #{Generator::MAX_TOKENS})
+          --temperature TEMP     Sampling temperature; ignored by reasoning models (overrides GEMSKILL_TEMPERATURE; default: #{Generator::DEFAULT_TEMPERATURE})
           --version, -v          Print gem-skill version and exit
 
         Env:

@@ -41,6 +41,13 @@ class CacheTest < Minitest::Test
     end
   end
 
+  def test_versions_sorts_numerically
+    with_tmp_cache do
+      %w[0.10.0 0.9.0 1.10.0 1.9.0].each { |v| Gem::Skill::Cache.store("my_gem", v, "skill") }
+      assert_equal %w[0.9.0 0.10.0 1.9.0 1.10.0], Gem::Skill::Cache.versions("my_gem")
+    end
+  end
+
   def test_purge_removes_version_dir
     with_tmp_cache do
       Gem::Skill::Cache.store("my_gem", "1.0.0", "content")
@@ -73,6 +80,48 @@ class CacheTest < Minitest::Test
       Gem::Skill::Cache.store("zeitwerk", "2.0.0", "z skill")
       Gem::Skill::Cache.store("faraday",  "1.0.0", "f skill")
       assert_equal %w[faraday zeitwerk], Gem::Skill::Cache.all_gems
+    end
+  end
+
+  def test_all_gems_skips_non_gem_entries
+    with_tmp_cache do
+      Gem::Skill::Cache.store("rake", "13.0.0", "skill")
+      File.write(File.join(@tmpdir, ".DS_Store"), "x")
+      assert_equal %w[rake], Gem::Skill::Cache.all_gems
+    end
+  end
+
+  def test_versions_skips_non_version_entries
+    with_tmp_cache do
+      Gem::Skill::Cache.store("rake", "13.0.0", "skill")
+      File.write(File.join(@tmpdir, "rake", ".DS_Store"), "x")
+      assert_equal %w[13.0.0], Gem::Skill::Cache.versions("rake")
+    end
+  end
+
+  def test_skill_path_rejects_a_name_that_is_not_a_plain_gem_name
+    assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.skill_path("foo/bar", "1.0.0") }
+  end
+
+  def test_skill_path_rejects_a_non_version_string
+    assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.skill_path("my_gem", "not a version") }
+  end
+
+  def test_purge_rejects_an_invalid_name
+    with_tmp_cache do
+      assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.purge("foo/bar", "1.0.0") }
+    end
+  end
+
+  def test_store_rejects_an_invalid_name
+    with_tmp_cache do
+      assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.store("foo/bar", "1.0.0", "content") }
+    end
+  end
+
+  def test_versions_rejects_an_invalid_name
+    with_tmp_cache do
+      assert_raises(Gem::Skill::Error) { Gem::Skill::Cache.versions("foo/bar") }
     end
   end
 

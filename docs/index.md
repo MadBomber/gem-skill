@@ -69,5 +69,5 @@ simultaneously with live TTY spinner progress.
 - **Concurrent** — all LLM calls run concurrently via async fibers
 - **Two interfaces** — `gem skill` for global cache management, `bundle skill` for project-aware linking
 - **Auto-install** — `gem install --with-skill` generates skills during normal gem installation
-- **Configurable** — `GEMSKILL_DIR`, `GEMSKILL_PROJECT_DIR`, and `GEMSKILL_MODEL` environment variables
+- **Configurable** — cache and link directories, model, token cap, temperature, request timeout and local-model endpoints via environment variables; see [Configuration](configuration.md)
 - **Multi-assistant** — `SKILL.md` works with Claude Code, OpenAI Codex, and others; `GEMSKILL_PROJECT_DIR` points project links at the right directory

@@ -6,6 +6,7 @@ require "gem/skill/cli/gem_command"
 
 class GemCommandTest < Minitest::Test
   def setup
+    enter_temp_project
     @tmpdir = Dir.mktmpdir
     stub_cache_root(@tmpdir)
     @cmd    = Gem::Commands::SkillCommand.new
@@ -20,6 +21,28 @@ class GemCommandTest < Minitest::Test
     Gem.ui.instance_variable_set(:@errs, STDERR)
     FileUtils.rm_rf(@tmpdir)
     restore_cache_root
+  ensure
+    leave_temp_project
+  end
+
+  # --- option parsing ---
+
+  def test_handle_options_parses_numeric_values
+    @cmd.handle_options(%w[install foo --max-tokens 4096 --temperature 0.7])
+    assert_equal 4096, @cmd.options[:max_tokens]
+    assert_in_delta 0.7, @cmd.options[:temperature]
+  end
+
+  def test_handle_options_rejects_non_numeric_max_tokens
+    assert_raises(Gem::OptionParser::InvalidArgument) do
+      @cmd.handle_options(%w[install foo --max-tokens abc])
+    end
+  end
+
+  def test_handle_options_rejects_non_numeric_temperature
+    assert_raises(Gem::OptionParser::InvalidArgument) do
+      @cmd.handle_options(%w[install foo --temperature hot])
+    end
   end
 
   # --- execute dispatch ---
@@ -32,17 +55,93 @@ class GemCommandTest < Minitest::Test
 
   def test_execute_shows_usage_and_error_for_unknown_subcommand
     set_args("bogus")
-    Gem::Skill.stub(:configure_llm!, nil) { @cmd.execute }
+    Gem::Skill.stub(:configure_llm!, nil) do
+      assert_raises(Gem::SystemExitException) { @cmd.execute }
+    end
     assert_match "install", @output.string
     assert_match "Unknown subcommand", @errors.string
+  end
+
+  def test_execute_exits_1_for_unknown_subcommand
+    set_args("bogus")
+    Gem::Skill.stub(:configure_llm!, nil) do
+      err = assert_raises(Gem::SystemExitException) { @cmd.execute }
+      assert_equal 1, err.exit_code
+    end
+  end
+
+  def test_execute_does_not_exit_for_nil_subcommand
+    set_args
+    Gem::Skill.stub(:configure_llm!, nil) { @cmd.execute } # must not raise
+    assert_match "install", @output.string
   end
 
   # --- cmd_install ---
 
   def test_install_shows_error_without_gem_name
     set_args
-    @cmd.send(:cmd_install)
+    err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
+    assert_equal 1, err.exit_code
     assert_match "gem_name required", @errors.string
+  end
+
+  def test_install_exits_0_on_success
+    set_args("my_gem")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_generator([]) { @cmd.send(:cmd_install) } # must not raise
+    end
+    assert_match "Tip: run 'gem skill setup' to enable 'bundle skill' and install the router skill.", @output.string
+  end
+
+  def test_install_exits_1_when_a_gem_fails
+    set_args("bad_gem")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Generator.stub(:new, ->(*) { failing_generator }) do
+        err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
+        assert_equal 1, err.exit_code
+      end
+    end
+    assert_match "bad_gem", @errors.string
+  end
+
+  def test_install_error_takes_precedence_over_verify_fixed
+    set_args("fixed_gem", "bad_gem")
+    set_option(:verify, true)
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, ->(name, *_a, **_k) {
+        if name == "bad_gem"
+          Gem::Skill::Runner::Result.failure("boom")
+        else
+          Gem::Skill::Runner::Result.success(verify_fixed: true)
+        end
+      }) do
+        err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
+        assert_equal 1, err.exit_code
+      end
+    end
+  end
+
+  def test_install_processes_a_repeated_gem_name_once
+    set_args("my_gem", "my_gem")
+    calls = []
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, ->(name, *, **) { calls << name; Gem::Skill::Runner::Result.success }) do
+        @cmd.send(:cmd_install)
+      end
+    end
+    assert_equal %w[my_gem], calls
+  end
+
+  def test_verify_processes_a_repeated_gem_name_once
+    pre_cache("my_gem", "1.0.0")
+    set_args("my_gem", "my_gem")
+    calls = []
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, ->(name, *, **) { calls << name; Gem::Skill::Runner::Result.success }) do
+        @cmd.send(:cmd_verify)
+      end
+    end
+    assert_equal %w[my_gem], calls
   end
 
   def test_install_auto_installs_when_gem_not_present
@@ -60,13 +159,13 @@ class GemCommandTest < Minitest::Test
     set_args("no_such_gem_xyz")
     @cmd.stub(:resolve_installed_version, nil) do
       @cmd.stub(:install_gem, ->(*) { raise Gem::Skill::Error, "Could not install 'no_such_gem_xyz'" }) do
-        @cmd.send(:cmd_install)
+        assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }
       end
     end
     assert_match "Could not install", @errors.string
   end
 
-  def test_install_skips_generation_when_already_cached
+  def test_install_links_cached_gem_without_generating
     pre_cache("my_gem", "1.0.0")
     set_args("my_gem")
     generated = []
@@ -74,6 +173,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_empty generated
+    assert_linked "my_gem", "1.0.0"
   end
 
   def test_install_generates_and_links_uncached_gem
@@ -83,6 +183,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_includes generated, "my_gem"
+    assert_linked "my_gem", "1.0.0"
   end
 
   def test_install_multiple_gems
@@ -92,7 +193,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_equal %w[gem_a gem_b gem_c], generated
-    assert_match "Tip:", @output.string
+    assert_match "Tip: run 'gem skill setup' to enable 'bundle skill' and install the router skill.", @output.string
   end
 
   def test_install_continues_after_one_gem_fails
@@ -102,7 +203,7 @@ class GemCommandTest < Minitest::Test
     @cmd.stub(:resolve_installed_version, resolver) do
       Gem::Skill::Generator.stub(:new, ->(name, *) {
         name == "bad_gem" ? failing_generator : simple_generator_tracking(generated, name)
-      }) { @cmd.send(:cmd_install) }
+      }) { assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) } }
     end
     assert_match "bad_gem", @errors.string
     assert_includes generated, "good_gem"
@@ -117,6 +218,7 @@ class GemCommandTest < Minitest::Test
       stub_generator(generated) { @cmd.send(:cmd_install) }
     end
     assert_includes generated, "my_gem"
+    assert_linked "my_gem", "1.0.0"
   end
 
   def test_install_passes_custom_model_to_generator
@@ -126,7 +228,7 @@ class GemCommandTest < Minitest::Test
     gen_obj  = simple_generator
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-        @cmd.send(:cmd_install)
+        stub_linker { @cmd.send(:cmd_install) }
       end
     end
     assert_equal "claude-haiku-4-5", captured[:model]
@@ -139,7 +241,7 @@ class GemCommandTest < Minitest::Test
     gen_obj  = simple_generator
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-        @cmd.send(:cmd_install)
+        stub_linker { @cmd.send(:cmd_install) }
       end
     end
     assert_equal 65_536, captured[:max_tokens]
@@ -152,7 +254,7 @@ class GemCommandTest < Minitest::Test
     gen_obj  = simple_generator
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*_args, **kwargs) { captured.merge!(kwargs); gen_obj }) do
-        @cmd.send(:cmd_install)
+        stub_linker { @cmd.send(:cmd_install) }
       end
     end
     assert_equal 0.5, captured[:temperature]
@@ -162,7 +264,7 @@ class GemCommandTest < Minitest::Test
     set_args("my_gem")
     @cmd.stub(:resolve_installed_version, "1.0.0") do
       Gem::Skill::Generator.stub(:new, ->(*) { failing_generator }) do
-        @cmd.send(:cmd_install)  # must not raise
+        assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_install) }  # must not raise Gem::Skill::Error
       end
     end
     assert_match "no docs found", @errors.string
@@ -280,8 +382,18 @@ class GemCommandTest < Minitest::Test
 
   def test_verify_shows_error_without_gem_name
     set_args
-    @cmd.send(:cmd_verify)
+    err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_verify) }
+    assert_equal 1, err.exit_code
     assert_match "gem_name required", @errors.string
+  end
+
+  def test_verify_exits_1_when_a_gem_errors
+    set_args("ghost_gem")
+    @cmd.stub(:resolve_installed_version, nil) do
+      err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_verify) }
+      assert_equal 1, err.exit_code
+    end
+    assert_match "not installed", @errors.string
   end
 
   def test_verify_one_errors_when_gem_not_installed
@@ -328,6 +440,17 @@ class GemCommandTest < Minitest::Test
     end
   end
 
+  def test_verify_one_does_not_link_into_the_current_directory
+    pre_cache("my_gem", "1.0.0")
+    ok = Gem::Skill::Verifier::Result.new(content: "# skill", changed: false, verifiable: true, model: "m")
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      stub_verifier(ok) do
+        assert @cmd.send(:verify_one, "my_gem", spinner: fake_spinner, model: "m").ok?
+      end
+    end
+    refute File.symlink?(File.join(Gem::Skill::Linker.skills_dir, "my_gem"))
+  end
+
   def test_cmd_verify_exits_with_fixed_code_when_corrections_applied
     pre_cache("my_gem", "1.0.0")
     set_args("my_gem")
@@ -342,6 +465,18 @@ class GemCommandTest < Minitest::Test
         end
       end
     end
+  end
+
+  def test_cmd_verify_forwards_max_tokens
+    pre_cache("my_gem", "1.0.0")
+    set_args("my_gem")
+    set_option(:max_tokens, 1_500)
+    captured = {}
+    install  = ->(*, **kwargs) { Gem::Skill::Runner::Result.success.tap { captured.merge!(kwargs) } }
+    @cmd.stub(:resolve_installed_version, "1.0.0") do
+      Gem::Skill::Runner.stub(:install_skill, install) { @cmd.send(:cmd_verify) }
+    end
+    assert_equal 1_500, captured[:max_tokens]
   end
 
   # --- install_router_skill (gem skill setup) ---
@@ -395,6 +530,70 @@ class GemCommandTest < Minitest::Test
     end
   end
 
+  # --- cmd_setup exit status ---
+
+  def test_register_bundler_plugin_true_when_already_registered
+    @cmd.stub(:`, "gem-skill (0.1.0)\n") do
+      @cmd.stub(:system, ->(*) { flunk "must not reinstall a registered plugin" }) do
+        assert @cmd.send(:register_bundler_plugin)
+      end
+    end
+  end
+
+  def test_register_bundler_plugin_true_when_install_succeeds
+    @cmd.stub(:`, "") do
+      @cmd.stub(:system, true) { assert @cmd.send(:register_bundler_plugin) }
+    end
+  end
+
+  def test_register_bundler_plugin_false_when_install_fails
+    @cmd.stub(:`, "") do
+      @cmd.stub(:system, nil) { refute @cmd.send(:register_bundler_plugin) }
+    end
+    assert_match "bundle plugin install gem-skill", @errors.string
+  end
+
+  def test_install_router_skill_false_when_source_missing
+    @cmd.stub(:router_skill_source, File.join(@tmpdir, "missing", "SKILL.md")) do
+      refute @cmd.send(:install_router_skill)
+    end
+    assert_match "Router skill not found", @errors.string
+  end
+
+  def test_install_router_skill_true_when_no_assistants_detected
+    Dir.mktmpdir do |home|
+      with_env("HOME", home) { assert @cmd.send(:install_router_skill) }
+    end
+  end
+
+  def test_setup_exits_1_but_still_installs_router_when_plugin_fails
+    Dir.mktmpdir do |home|
+      with_env("HOME", home) do
+        FileUtils.mkdir_p(File.join(home, ".claude"))
+        @cmd.stub(:register_bundler_plugin, false) do
+          err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_setup) }
+          assert_equal 1, err.exit_code
+        end
+        assert File.exist?(File.join(home, ".claude", "skills", "ruby-gem-skills", "SKILL.md"))
+      end
+    end
+  end
+
+  def test_setup_exits_1_when_router_skill_fails
+    @cmd.stub(:register_bundler_plugin, true) do
+      @cmd.stub(:install_router_skill, false) do
+        err = assert_raises(Gem::SystemExitException) { @cmd.send(:cmd_setup) }
+        assert_equal 1, err.exit_code
+      end
+    end
+  end
+
+  def test_setup_exits_0_when_both_steps_succeed
+    @cmd.stub(:register_bundler_plugin, true) do
+      @cmd.stub(:install_router_skill, true) { @cmd.send(:cmd_setup) } # must not raise
+    end
+  end
+
   private
 
   def with_env(key, value)
@@ -423,10 +622,15 @@ class GemCommandTest < Minitest::Test
     File.write(File.join(dir, "SKILL.md"), "# #{gem_name} skill")
   end
 
+  # Like the real Generator, the fake caches what it generates, so the
+  # install's real Linker.link has a skill to link.
   def stub_generator(generated)
-    Gem::Skill::Generator.stub(:new, ->(name, *) {
+    Gem::Skill::Generator.stub(:new, ->(name, version, **) {
       obj = Object.new
-      obj.define_singleton_method(:generate) { |**| generated << name; "# #{name} skill" }
+      obj.define_singleton_method(:generate) do |**|
+        generated << name
+        "# #{name} skill".tap { |content| Gem::Skill::Cache.store(name, version, content) }
+      end
       obj
     }) { yield }
   end
@@ -455,6 +659,29 @@ class GemCommandTest < Minitest::Test
       spinner.define_singleton_method(m) { |*| }
     end
     spinner
+  end
+
+  # Install links into Dir.pwd/.claude/skills; run each test from a throwaway
+  # project dir, with no GEMSKILL_PROJECT_DIR override, so tests never leave
+  # symlinks in the repo.
+  def enter_temp_project
+    @original_project_dir = ENV.delete("GEMSKILL_PROJECT_DIR")
+    @original_pwd = Dir.pwd
+    @project_root = File.realpath(Dir.mktmpdir)
+    Dir.chdir(@project_root)
+  end
+
+  def leave_temp_project
+    Dir.chdir(@original_pwd)
+    FileUtils.rm_rf(@project_root) if @project_root
+    ENV["GEMSKILL_PROJECT_DIR"] = @original_project_dir if @original_project_dir
+  end
+
+  # The install linked gem_name into the test's project dir, at the cached version.
+  def assert_linked(gem_name, version)
+    link = File.join(Gem::Skill::Linker.skills_dir(@project_root), gem_name)
+    assert File.symlink?(link), "expected #{link} to be a symlink"
+    assert_equal File.join(@tmpdir, gem_name, version), File.readlink(link)
   end
 
   def stub_linker

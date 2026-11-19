@@ -47,14 +47,19 @@ lockfile-resolved version for every gem.
 
 `lib/gem/skill/fetcher.rb`
 
-Collects documentation from up to three sources, tried in priority order:
+`fetch_all` returns up to four sources, each read from the installed gem
+(`Gem::Specification`) first:
 
-1. **Local gem install** — reads `README` and `CHANGELOG` from the gem's install directory via `Gem::Specification`
-2. **RubyGems API** — fetches summary, runtime dependencies, source URI
-3. **GitHub raw README** — fetched when the gem is not installed locally; tries `main` then `master` branches, and four common README filename variants
+1. **Metadata** — gemspec summary, description, authors, homepage, licenses, URIs and runtime dependencies; falls back to the RubyGems API when the gem isn't installed
+2. **README** — falls back to the raw README on GitHub; tries `main` then `master` branches, and four common README filename variants
+3. **CHANGELOG** — local only
+4. **Examples** — `examples/**/*.{rb,md}`, local only
 
-Content is truncated at 60,000 characters per source to avoid blowing the LLM
-context window.
+Sources that can't be found are left out. See
+[Sources used to generate](skill-files.md#sources-used-to-generate).
+
+The Generator truncates each source at 60,000 characters to avoid blowing the
+LLM context window.
 
 ### Generator
 
@@ -83,7 +88,7 @@ Manages the global skill cache. Structure:
         ├── SKILL.md
         └── metadata.json   (gem, version, model, generated_at, sources,
                              and after --verify: a "verification" block with
-                             source provenance + structured changes)
+                             verified, verified_at, model, fixed)
 ```
 
 `Cache::ROOT` is set once at load time from `GEMSKILL_DIR` (default: `~/.gem/skills`).
@@ -104,22 +109,18 @@ method signatures, default argument values, visibility, return values, and
 behavioral claims.
 
 ```ruby
-Verifier.new(gem_name, version, model:).verify(skill_content)
-# => Result(content:, changes:, changed:, verifiable:, source:, model:)
+Verifier.new(gem_name, version, model:, max_tokens:).verify(skill_content)
+# => Result(content:, changed:, verifiable:, model:)
 ```
 
-Ground truth comes from `Fetcher#source_code` (the gem's `lib/**/*.rb`), and
-`Fetcher#source_manifest` records which files were examined. Whether the skill
-actually changed is decided by a **deterministic diff** of the content before and
-after — not by trusting the model's self-report — so the exit code is reliable.
-If no installed source is available, `verifiable` is false and the skill is left
-untouched.
+Ground truth comes from `Fetcher#source_code` (the gem's `lib/**/*.rb`).
+Whether the skill actually changed is decided by a **deterministic diff** of the
+content before and after — not by trusting the model's self-report — so the exit
+code is reliable. If no installed source is available, `verifiable` is false and
+the skill is left untouched.
 
-Each correction in `changes` is a structured, issue-ready Hash
-(`category`, `symbol`, `skill_section`, `source_location`, `was`, `now`,
-`detail`, `source_evidence`) — detailed enough to file a documentation bug
-against the gem. The Runner writes these, plus source provenance, into the
-`verification` block of `metadata.json`.
+The Runner records the outcome (`verified`, `verified_at`, `model`, `fixed`) in
+the `verification` block of `metadata.json`.
 
 ### Linker
 
@@ -154,14 +155,16 @@ Shared core used by both CLI commands. Drives one gem through the
 cache-check → generate → link sequence:
 
 ```ruby
-Runner.install_skill(gem_name, version, spinner, force:, model:, verify:)
-# => Runner::Result(error:, verify_fixed:, change_count:)
+Runner.install_skill(gem_name, version, spinner, force:, model:, verify:, link: true)
+# => Runner::Result(error:, verify_fixed:)
 ```
 
 Captures errors into the result rather than raising, so the caller (the
 concurrent fiber) can record them without killing other in-flight fibers. When
 `verify:` is set, the result's `verify_fixed` lets the CLI aggregate across all
 gems and exit `2` (`EXIT_VERIFY_FIXED`) if any skill was corrected.
+`gem skill verify` passes `link: false`, so verifying a cached skill never
+creates a link in the current directory.
 
 ---
 
@@ -203,7 +206,7 @@ them concurrently.
 
 ### Bundler plugin (`plugins.rb`)
 
-Registered via `bundle plugin install gem-skill` (or `gem skill setup`).
+Registered by `gem skill setup` (or manually with `bundle plugin install gem-skill`).
 Bundler's plugin API loads `plugins.rb` and discovers the
 `Gem::Skill::BundlerPlugin` class, which routes `bundle skill SUBCOMMAND` to
 `Gem::Skill::BundlerCommand`.

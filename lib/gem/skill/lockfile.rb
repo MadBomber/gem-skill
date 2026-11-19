@@ -12,9 +12,12 @@ module Gem::Skill
 
     def self.parse(content)
       specs  = parse_specs(content)
-      direct = parse_direct_names(content) + parse_path_dep_names(content)
+      git    = parse_git_spec_names(content)
+      direct = parse_direct_names(content).map { |name| strip_git_bang(name, git) } +
+               parse_path_dep_names(content)
       direct.uniq.each_with_object({}) do |name, hash|
-        hash[name] = specs[name] if specs.key?(name)
+        version = specs[name]
+        hash[name] = version if version && Validation.valid_gem_name?(name) && Validation.valid_version?(version)
       end
     end
 
@@ -26,7 +29,9 @@ module Gem::Skill
         if line.strip == "specs:"
           in_specs = true
           next
-        elsif in_specs && line =~ /\A {4}(\S+) \(([^)]+)\)/
+        # As in Bundler's LockfileParser, the version stops at the first "-";
+        # the rest is the platform (e.g. "1.6.1-x86_64-linux").
+        elsif in_specs && line =~ /\A {4}(\S+) \(([^-)]+)(?:-[^)]*)?\)/
           specs[Regexp.last_match(1)] = Regexp.last_match(2)
         elsif in_specs && line !~ /\A /
           in_specs = false
@@ -34,6 +39,35 @@ module Gem::Skill
       end
 
       specs
+    end
+
+    # Bundler marks gems from a git: source as `foo!` in DEPENDENCIES. Strip the
+    # bang only for those, so the project's own path gem (`name!`) stays skipped.
+    def self.strip_git_bang(name, git_names)
+      bare = name.delete_suffix("!")
+      name.end_with?("!") && git_names.include?(bare) ? bare : name
+    end
+
+    def self.parse_git_spec_names(content)
+      in_git   = false
+      in_specs = false
+      names    = []
+
+      content.each_line do |line|
+        if line.strip == "GIT"
+          in_git   = true
+          in_specs = false
+        elsif in_git && line.strip == "specs:"
+          in_specs = true
+        elsif in_git && in_specs && line =~ /\A {4}(\S+) \(/
+          names << Regexp.last_match(1)
+        elsif in_git && !line.start_with?(" ") && !line.strip.empty?
+          in_git   = false
+          in_specs = false
+        end
+      end
+
+      names
     end
 
     def self.parse_path_dep_names(content)
